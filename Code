@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Feud Host App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .flip { transition: all 0.3s ease-in-out; transform: scaleY(1); }
+    .hidden-answer { transform: scaleY(0); opacity: 0; }
+  </style>
+</head>
+<body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-6">
+  <h1 class="text-4xl font-bold mb-6">Family Feud Host Panel</h1>
+
+  <!-- Scoreboard -->
+  <div class="flex gap-8 mb-8">
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Team A</h2>
+      <div id="scoreA" class="text-3xl">0</div>
+      <button onclick="addPoints('A')" class="mt-2 bg-green-600 px-4 py-1 rounded">+</button>
+    </div>
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Team B</h2>
+      <div id="scoreB" class="text-3xl">0</div>
+      <button onclick="addPoints('B')" class="mt-2 bg-green-600 px-4 py-1 rounded">+</button>
+    </div>
+  </div>
+
+  <!-- Answers Section -->
+  <div class="w-full max-w-2xl bg-white text-black rounded-lg p-4 mb-8">
+    <h3 class="text-2xl font-bold mb-4">Question: Name a fruit you might find in a pie.</h3>
+    <div id="answers" class="grid grid-cols-2 gap-4">
+      <!-- Dynamically filled -->
+    </div>
+  </div>
+
+  <!-- Strikes -->
+  <div class="flex gap-4 mb-6">
+    <h2 class="text-xl font-semibold">Strikes:</h2>
+    <div id="strikes" class="flex gap-2">
+      <span class="text-4xl">❌</span>
+      <span class="text-4xl">❌</span>
+      <span class="text-4xl">❌</span>
+    </div>
+    <button onclick="resetStrikes()" class="bg-red-700 px-4 py-1 rounded">Reset</button>
+  </div>
+
+  <audio id="ding" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="buzz" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+  <script>
+    const answers = [
+      { text: 'Apple', points: 30 },
+      { text: 'Cherry', points: 25 },
+      { text: 'Blueberry', points: 20 },
+      { text: 'Peach', points: 15 },
+      { text: 'Pumpkin', points: 10 },
+    ];
+
+    let revealed = Array(answers.length).fill(false);
+    let scoreA = 0;
+    let scoreB = 0;
+    let currentStrikes = 0;
+
+    const ding = document.getElementById('ding');
+    const buzz = document.getElementById('buzz');
+
+    const answersDiv = document.getElementById('answers');
+    answers.forEach((ans, i) => {
+      const el = document.createElement('div');
+      el.className = 'bg-yellow-300 text-black p-3 rounded shadow cursor-pointer text-center hidden-answer';
+      el.textContent = `${ans.text} - ${ans.points} pts`;
+      el.onclick = () => revealAnswer(i, el);
+      answersDiv.appendChild(el);
+    });
+
+    function revealAnswer(index, el) {
+      if (!revealed[index]) {
+        revealed[index] = true;
+        el.classList.remove('hidden-answer');
+        el.classList.add('flip');
+        ding.play();
+      }
+    }
+
+    function addPoints(team) {
+      const total = answers.reduce((sum, a, i) => sum + (revealed[i] ? a.points : 0), 0);
+      if (team === 'A') scoreA += total;
+      else scoreB += total;
+      updateScores();
+    }
+
+    function updateScores() {
+      document.getElementById('scoreA').textContent = scoreA;
+      document.getElementById('scoreB').textContent = scoreB;
+    }
+
+    function resetStrikes() {
+      currentStrikes = 0;
+      const xEls = document.getElementById('strikes').children;
+      for (let el of xEls) el.style.opacity = '0.2';
+    }
+
+    document.getElementById('strikes').addEventListener('click', () => {
+      if (currentStrikes < 3) {
+        document.getElementById('strikes').children[currentStrikes].style.opacity = '1';
+        buzz.play();
+        currentStrikes++;
+      }
+    });
+
+    resetStrikes();
+  </script>
+</body>
+</html>
