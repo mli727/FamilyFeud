@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Feud Host App</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js" type="module"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js" type="module"></script>
   <style>
     .flip { transition: all 0.3s ease-in-out; transform: scaleY(1); }
     .hidden-answer { transform: scaleY(0); opacity: 0; }
@@ -19,9 +21,7 @@
     <label class="block mb-2">Question:
       <input id="questionInput" type="text" class="w-full px-2 py-1 border rounded" />
     </label>
-    <div id="answerInputs" class="space-y-2 mb-2">
-      <!-- Answer inputs dynamically added -->
-    </div>
+    <div id="answerInputs" class="space-y-2 mb-2"></div>
     <button onclick="addAnswerInput()" class="bg-gray-600 text-white px-2 py-1 rounded">Add Answer</button>
     <button onclick="loadCustomQuestion()" class="bg-green-700 text-white px-4 py-1 rounded ml-2">Load Question</button>
   </div>
@@ -43,9 +43,7 @@
   <!-- Answers Section -->
   <div class="w-full max-w-2xl bg-white text-black rounded-lg p-4 mb-8">
     <h3 id="displayQuestion" class="text-2xl font-bold mb-4">Question will appear here</h3>
-    <div id="answers" class="grid grid-cols-2 gap-4">
-      <!-- Dynamically filled -->
-    </div>
+    <div id="answers" class="grid grid-cols-2 gap-4"></div>
   </div>
 
   <!-- Strikes -->
@@ -62,7 +60,23 @@
   <audio id="ding" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
   <audio id="buzz" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
+      authDomain: "family-feud-game-13f89.firebaseapp.com",
+      projectId: "family-feud-game-13f89",
+      storageBucket: "family-feud-game-13f89.firebasestorage.app",
+      messagingSenderId: "911043163745",
+      appId: "1:911043163745:web:dce176591585a093a21c20",
+      measurementId: "G-Q2S4LXF4XM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     let answers = [];
     let revealed = [];
     let scoreA = 0;
@@ -71,6 +85,17 @@
 
     const ding = document.getElementById('ding');
     const buzz = document.getElementById('buzz');
+
+    function syncState() {
+      set(ref(db, 'game'), {
+        question: document.getElementById('displayQuestion').textContent,
+        answers,
+        revealed,
+        scoreA,
+        scoreB,
+        strikes: currentStrikes
+      });
+    }
 
     function renderAnswers() {
       revealed = Array(answers.length).fill(false);
@@ -83,6 +108,7 @@
         el.onclick = () => revealAnswer(i, el);
         answersDiv.appendChild(el);
       });
+      syncState();
     }
 
     function revealAnswer(index, el) {
@@ -91,6 +117,7 @@
         el.classList.remove('hidden-answer');
         el.classList.add('flip');
         ding.play();
+        syncState();
       }
     }
 
@@ -99,6 +126,7 @@
       if (team === 'A') scoreA += total;
       else scoreB += total;
       updateScores();
+      syncState();
     }
 
     function updateScores() {
@@ -110,6 +138,7 @@
       currentStrikes = 0;
       const xEls = document.getElementById('strikes').children;
       for (let el of xEls) el.style.opacity = '0.2';
+      syncState();
     }
 
     document.getElementById('strikes').addEventListener('click', () => {
@@ -117,10 +146,10 @@
         document.getElementById('strikes').children[currentStrikes].style.opacity = '1';
         buzz.play();
         currentStrikes++;
+        syncState();
       }
     });
 
-    // Answer Input Editor
     const answerContainer = document.getElementById('answerInputs');
     function addAnswerInput() {
       const div = document.createElement('div');
@@ -147,6 +176,7 @@
       answers = newAnswers;
       renderAnswers();
       resetStrikes();
+      syncState();
     }
 
     resetStrikes();
@@ -155,3 +185,4 @@
   </script>
 </body>
 </html>
+
