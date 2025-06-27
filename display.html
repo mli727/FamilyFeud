@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Feud Display</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js" type="module"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js" type="module"></script>
+</head>
+<body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8">
+  <h1 class="text-4xl font-bold mb-6">🎉 Family Feud 🎉</h1>
+
+  <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
+
+  <div id="answers" class="grid grid-cols-2 gap-4 max-w-4xl w-full mb-8"></div>
+
+  <div class="flex gap-20 text-center text-2xl mb-8">
+    <div>
+      <h2 class="font-bold">Team A</h2>
+      <div id="scoreA">0</div>
+    </div>
+    <div>
+      <h2 class="font-bold">Team B</h2>
+      <div id="scoreB">0</div>
+    </div>
+  </div>
+
+  <div class="flex gap-4">
+    <span class="text-4xl" id="strike1">❌</span>
+    <span class="text-4xl" id="strike2">❌</span>
+    <span class="text-4xl" id="strike3">❌</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
+      authDomain: "family-feud-game-13f89.firebaseapp.com",
+      projectId: "family-feud-game-13f89",
+      storageBucket: "family-feud-game-13f89.firebasestorage.app",
+      messagingSenderId: "911043163745",
+      appId: "1:911043163745:web:dce176591585a093a21c20",
+      measurementId: "G-Q2S4LXF4XM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const gameRef = ref(db, 'game');
+    onValue(gameRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      document.getElementById('question').textContent = data.question || 'Waiting for host...';
+      document.getElementById('scoreA').textContent = data.scoreA || 0;
+      document.getElementById('scoreB').textContent = data.scoreB || 0;
+
+      const answersDiv = document.getElementById('answers');
+      answersDiv.innerHTML = '';
+
+      (data.answers || []).forEach((ans, i) => {
+        const box = document.createElement('div');
+        box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow text-center min-h-[60px] flex items-center justify-center';
+        if (data.revealed && data.revealed[i]) {
+          box.textContent = `${ans.text} - ${ans.points} pts`;
+        } else {
+          box.textContent = '???';
+        }
+        answersDiv.appendChild(box);
+      });
+
+      [1, 2, 3].forEach(n => {
+        const el = document.getElementById(`strike${n}`);
+        el.style.opacity = data.strikes >= n ? '1' : '0.2';
+      });
+    });
+  </script>
+</body>
+</html>
