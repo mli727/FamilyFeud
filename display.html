@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Feud Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -26,29 +26,27 @@
       font-size: 1.5rem;
       cursor: pointer;
       user-select: none;
-      padding-left: 60px; /* space for number circle */
       color: black;
+      padding: 0;
     }
     .answer-box.revealed {
-      background-color: #facc15; /* Tailwind yellow-400 */
+      background-color: #facc15;
       cursor: default;
       color: black;
       padding-left: 20px;
       justify-content: flex-start;
     }
     .answer-box.unrevealed {
-      background-color: #fbbf24; /* Tailwind yellow-500 */
+      background-color: #fbbf24;
     }
     .answer-box.empty {
-      background-color: #94a3b8; /* Tailwind gray-400 */
+      background-color: #94a3b8;
       cursor: default;
       color: white;
     }
     .number-circle {
-      position: absolute;
-      left: 10px;
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       border: 3px solid black;
       border-radius: 50%;
       background: white;
@@ -56,7 +54,7 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       user-select: none;
     }
   </style>
@@ -94,7 +92,7 @@
       authDomain: "family-feud-game-13f89.firebaseapp.com",
       projectId: "family-feud-game-13f89",
       databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com",
-      storageBucket: "family-feud-game-13f89.firebasestorage.app",
+      storageBucket: "family-feud-game-13f89.appspot.com",
       messagingSenderId: "911043163745",
       appId: "1:911043163745:web:dce176591585a093a21c20",
       measurementId: "G-Q2S4LXF4XM"
@@ -102,7 +100,6 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
     const gameRef = ref(db, 'game');
 
     onValue(gameRef, (snapshot) => {
@@ -116,42 +113,38 @@
       const answersDiv = document.getElementById('answers');
       answersDiv.innerHTML = '';
 
-      // Always render 8 answer boxes (1-8)
-      for (let i = 0; i < 8; i++) {
-        const ans = (data.answers && data.answers[i]) || null;
-        const revealed = data.revealed && data.revealed[i];
-        const box = document.createElement('div');
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 2; col++) {
+          const index = col * 4 + row;
+          const ans = (data.answers && data.answers[index]) || null;
+          const revealed = data.revealed && data.revealed[index];
+          const box = document.createElement('div');
 
-        if (ans) {
-          box.className = 'answer-box ' + (revealed ? 'revealed' : 'unrevealed');
-          if (revealed) {
-            box.textContent = `${ans.text} - ${ans.points} pts`;
-            box.style.cursor = 'default';
+          if (ans) {
+            box.className = 'answer-box ' + (revealed ? 'revealed' : 'unrevealed');
+            if (revealed) {
+              box.textContent = `${ans.text} - ${ans.points} pts`;
+            } else {
+              const circle = document.createElement('div');
+              circle.className = 'number-circle';
+              circle.textContent = index + 1;
+              box.appendChild(circle);
+              box.addEventListener('click', () => {
+                const newRevealed = data.revealed ? [...data.revealed] : [];
+                newRevealed[index] = true;
+                set(gameRef, { ...data, revealed: newRevealed });
+              });
+            }
           } else {
-            box.textContent = '';
-            // Show circle with number
+            box.className = 'answer-box empty';
             const circle = document.createElement('div');
             circle.className = 'number-circle';
-            circle.textContent = (i + 1);
+            circle.textContent = index + 1;
             box.appendChild(circle);
-            // Click to reveal
-            box.addEventListener('click', () => {
-              const newRevealed = data.revealed ? [...data.revealed] : [];
-              newRevealed[i] = true;
-              set(gameRef, {...data, revealed: newRevealed});
-            });
           }
-        } else {
-          // Empty slot - gray box with number circle only
-          box.className = 'answer-box empty';
-          const circle = document.createElement('div');
-          circle.className = 'number-circle';
-          circle.textContent = (i + 1);
-          box.appendChild(circle);
-          box.style.cursor = 'default';
-        }
 
-        answersDiv.appendChild(box);
+          answersDiv.appendChild(box);
+        }
       }
 
       [1, 2, 3].forEach(n => {
