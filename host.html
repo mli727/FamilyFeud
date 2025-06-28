@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -74,6 +75,9 @@
         }
       });
 
+      console.log("Submitting Question:", question);
+      console.log("Answers:", answers);
+
       set(ref(db, "game"), {
         question,
         answers,
@@ -81,6 +85,10 @@
         strikes: 0,
         scoreA: 0,
         scoreB: 0
+      }).then(() => {
+        console.log("Game state successfully written to Firebase.");
+      }).catch((error) => {
+        console.error("Error writing to Firebase:", error);
       });
     };
 
