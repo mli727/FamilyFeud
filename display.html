@@ -2,16 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Family Feud Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #answers {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 900px;
+      width: 100%;
+      height: 70vh;
+    }
+    .answer-box {
+      position: relative;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      padding-left: 60px; /* space for number circle */
+      color: black;
+    }
+    .answer-box.revealed {
+      background-color: #facc15; /* Tailwind yellow-400 */
+      cursor: default;
+      color: black;
+      padding-left: 20px;
+      justify-content: flex-start;
+    }
+    .answer-box.unrevealed {
+      background-color: #fbbf24; /* Tailwind yellow-500 */
+    }
+    .answer-box.empty {
+      background-color: #94a3b8; /* Tailwind gray-400 */
+      cursor: default;
+      color: white;
+    }
+    .number-circle {
+      position: absolute;
+      left: 10px;
+      width: 40px;
+      height: 40px;
+      border: 3px solid black;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+      user-select: none;
+    }
+  </style>
 </head>
 <body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8">
   <h1 class="text-4xl font-bold mb-6">🎉 Family Feud 🎉</h1>
 
   <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
 
-  <div id="answers" class="grid grid-cols-2 gap-4 max-w-4xl w-full mb-8"></div>
+  <div id="answers"></div>
 
   <div class="flex gap-20 text-center text-2xl mb-8">
     <div>
@@ -61,30 +116,43 @@
       const answersDiv = document.getElementById('answers');
       answersDiv.innerHTML = '';
 
-      (data.answers || []).forEach((ans, i) => {
+      // Always render 8 answer boxes (1-8)
+      for (let i = 0; i < 8; i++) {
+        const ans = (data.answers && data.answers[i]) || null;
+        const revealed = data.revealed && data.revealed[i];
         const box = document.createElement('div');
-        box.className = 'bg-yellow-300 cursor-pointer text-black text-xl p-3 rounded shadow text-center min-h-[60px] flex items-center justify-center';
-        if (data.revealed && data.revealed[i]) {
-          box.textContent = `${ans.text} - ${ans.points} pts`;
-        } else {
-          box.textContent = '???';
-        }
 
-        // Add click handler only if not revealed
-        if (!data.revealed || !data.revealed[i]) {
-          box.addEventListener('click', () => {
-            // Update the revealed array for this index in Firebase
-            const newRevealed = data.revealed ? [...data.revealed] : [];
-            newRevealed[i] = true;
-            set(gameRef, {
-              ...data,
-              revealed: newRevealed
+        if (ans) {
+          box.className = 'answer-box ' + (revealed ? 'revealed' : 'unrevealed');
+          if (revealed) {
+            box.textContent = `${ans.text} - ${ans.points} pts`;
+            box.style.cursor = 'default';
+          } else {
+            box.textContent = '';
+            // Show circle with number
+            const circle = document.createElement('div');
+            circle.className = 'number-circle';
+            circle.textContent = (i + 1);
+            box.appendChild(circle);
+            // Click to reveal
+            box.addEventListener('click', () => {
+              const newRevealed = data.revealed ? [...data.revealed] : [];
+              newRevealed[i] = true;
+              set(gameRef, {...data, revealed: newRevealed});
             });
-          });
+          }
+        } else {
+          // Empty slot - gray box with number circle only
+          box.className = 'answer-box empty';
+          const circle = document.createElement('div');
+          circle.className = 'number-circle';
+          circle.textContent = (i + 1);
+          box.appendChild(circle);
+          box.style.cursor = 'default';
         }
 
         answersDiv.appendChild(box);
-      });
+      }
 
       [1, 2, 3].forEach(n => {
         const el = document.getElementById(`strike${n}`);
