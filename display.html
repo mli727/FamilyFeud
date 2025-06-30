@@ -68,17 +68,26 @@
       const totalSlots = 8;
       for (let i = 0; i < totalSlots; i++) {
         const box = document.createElement('div');
-        box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow text-center h-20 flex items-center justify-center relative';
+        box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow h-20 flex items-center justify-between relative px-4';
 
         if (currentRound.answers[i] && currentRound.revealed[i]) {
-          box.textContent = `${currentRound.answers[i].text} - ${currentRound.answers[i].points} pts`;
+          const answerText = document.createElement('div');
+          answerText.className = 'font-bold';
+          answerText.textContent = currentRound.answers[i].text;
+
+          const pointsBox = document.createElement('div');
+          pointsBox.className = 'bg-white text-black font-bold px-3 py-1 rounded';
+          pointsBox.textContent = currentRound.answers[i].points;
+
+          box.appendChild(answerText);
+          box.appendChild(pointsBox);
         } else if (currentRound.answers[i]) {
-          box.textContent = '???';
-        } else {
           const numberCircle = document.createElement('div');
-          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold';
-          numberCircle.textContent = (i % 4) + 1;
+          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold mx-auto';
+          numberCircle.textContent = i + 1;
           box.appendChild(numberCircle);
+        } else {
+          box.textContent = '';
         }
 
         answersDiv.appendChild(box);
