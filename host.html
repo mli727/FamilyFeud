@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Feud Host</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -48,10 +48,12 @@
 
     window.addRound = function () {
       const container = document.getElementById("roundsContainer");
+      const roundIndex = roundCount;  // Capture round index here
+
       const div = document.createElement("div");
       div.className = "mb-8 p-4 border rounded bg-white";
       div.innerHTML = `
-        <h2 class="text-xl font-bold mb-2">Round ${roundCount + 1}</h2>
+        <h2 class="text-xl font-bold mb-2">Round ${roundIndex + 1}</h2>
         <div class="mb-2">
           <label class="block mb-1 font-semibold">Question:</label>
           <input type="text" class="questionInput w-full p-2 border rounded">
@@ -73,8 +75,9 @@
         ansContainer.appendChild(ansDiv);
 
         const revealBtn = ansDiv.querySelector(".revealBtn");
-        const thisIndex = ansContainer.children.length - 1;
-        revealBtn.onclick = () => revealAnswer(roundCount, thisIndex);
+        const answerIndex = ansContainer.children.length - 1;
+        // Use captured roundIndex here:
+        revealBtn.onclick = () => revealAnswer(roundIndex, answerIndex);
       };
 
       container.appendChild(div);
@@ -112,7 +115,7 @@
       });
     };
 
-    window.revealAnswer = function (answerIndex) {
+    window.revealAnswer = function (roundIndex, answerIndex) {
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
@@ -120,20 +123,20 @@
           console.error('No rounds found in game data');
           return;
         }
-        const currentRoundIndex = data.currentRoundIndex || 0;
-        if (currentRoundIndex < 0 || currentRoundIndex >= data.rounds.length) {
-          console.error('Invalid currentRoundIndex:', currentRoundIndex);
+        if (roundIndex < 0 || roundIndex >= data.rounds.length) {
+          console.error('Invalid roundIndex:', roundIndex);
           return;
         }
-        const round = data.rounds[currentRoundIndex];
+        const round = data.rounds[roundIndex];
         if (!round.revealed) round.revealed = [];
         round.revealed[answerIndex] = true;
-        data.rounds[currentRoundIndex] = round;
+        data.rounds[roundIndex] = round;
         set(gameRef, data);
       }).catch(err => {
         console.error('Error reading game data:', err);
       });
     };
+
     window.addStrike = function () {
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
