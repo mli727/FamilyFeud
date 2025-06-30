@@ -9,22 +9,14 @@
 <body class="bg-gray-100 p-8">
   <h1 class="text-3xl font-bold mb-6">🎮 Host Panel</h1>
 
-  <div class="mb-4">
-    <label class="block mb-1 font-semibold">Question:</label>
-    <input type="text" id="questionInput" class="w-full p-2 border rounded">
-  </div>
-
-  <div class="mb-4">
-    <label class="block mb-1 font-semibold">Answers:</label>
-    <div id="answersContainer"></div>
-    <button onclick="addAnswerInput()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded">Add Answer</button>
-  </div>
-
-  <button onclick="loadCustomQuestion()" class="mb-6 px-4 py-2 bg-green-600 text-white rounded">Load Question to Display</button>
+  <div id="roundsContainer"></div>
+  <button onclick="addRound()" class="mb-6 px-4 py-2 bg-blue-600 text-white rounded">Add Round</button>
+  <button onclick="startGame()" class="mb-6 ml-4 px-4 py-2 bg-green-600 text-white rounded">Start Game</button>
 
   <div class="flex gap-4 mb-6">
     <button onclick="addStrike()" class="px-4 py-2 bg-red-500 text-white rounded">Add Strike</button>
     <button onclick="resetStrikes()" class="px-4 py-2 bg-gray-700 text-white rounded">Reset Strikes</button>
+    <button onclick="nextRound()" class="px-4 py-2 bg-indigo-600 text-white rounded">Next Round</button>
   </div>
 
   <div class="flex gap-4 mb-6">
@@ -41,7 +33,6 @@
       apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
       authDomain: "family-feud-game-13f89.firebaseapp.com",
       projectId: "family-feud-game-13f89",
-      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/",
       storageBucket: "family-feud-game-13f89.appspot.com",
       messagingSenderId: "911043163745",
       appId: "1:911043163745:web:dce176591585a093a21c20",
@@ -50,46 +41,66 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    let roundCount = 0;
 
-    window.addAnswerInput = function () {
-      const container = document.getElementById("answersContainer");
+    window.addRound = function () {
+      const container = document.getElementById("roundsContainer");
       const div = document.createElement("div");
-      div.className = "flex items-center gap-2 mb-2";
+      div.className = "mb-8 p-4 border rounded bg-white";
       div.innerHTML = `
-        <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/3">
-        <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/3">
+        <h2 class="text-xl font-bold mb-2">Round ${roundCount + 1}</h2>
+        <div class="mb-2">
+          <label class="block mb-1 font-semibold">Question:</label>
+          <input type="text" class="questionInput w-full p-2 border rounded">
+        </div>
+        <div class="answersContainer"></div>
+        <button class="addAnswerBtn mt-2 px-3 py-1 bg-blue-500 text-white rounded">Add Answer</button>
       `;
+
+      const addAnswerBtn = div.querySelector(".addAnswerBtn");
+      addAnswerBtn.onclick = () => {
+        const ansContainer = div.querySelector(".answersContainer");
+        const ansDiv = document.createElement("div");
+        ansDiv.className = "flex items-center gap-2 mb-2";
+        ansDiv.innerHTML = `
+          <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/3">
+          <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/3">
+        `;
+        ansContainer.appendChild(ansDiv);
+      };
+
       container.appendChild(div);
+      roundCount++;
     };
 
-    window.loadCustomQuestion = function () {
-      const question = document.getElementById("questionInput").value;
-      const answerEls = document.querySelectorAll(".answerText");
-      const pointEls = document.querySelectorAll(".answerPoints");
-      const answers = [];
+    window.startGame = function () {
+      const rounds = [];
+      const roundDivs = document.querySelectorAll("#roundsContainer > div");
 
-      answerEls.forEach((input, i) => {
-        const text = input.value;
-        const points = parseInt(pointEls[i].value, 10);
-        if (text && !isNaN(points)) {
-          answers.push({ text, points });
-        }
+      roundDivs.forEach(div => {
+        const question = div.querySelector(".questionInput").value;
+        const answerEls = div.querySelectorAll(".answerText");
+        const pointEls = div.querySelectorAll(".answerPoints");
+        const answers = [];
+
+        answerEls.forEach((input, i) => {
+          const text = input.value;
+          const points = parseInt(pointEls[i].value, 10);
+          if (text && !isNaN(points)) {
+            answers.push({ text, points });
+          }
+        });
+
+        rounds.push({ question, answers, revealed: Array(answers.length).fill(false), strikes: 0 });
       });
 
-      console.log("Submitting Question:", question);
-      console.log("Answers:", answers);
-
       set(ref(db, "game"), {
-        question,
-        answers,
-        revealed: Array(answers.length).fill(false),
-        strikes: 0,
+        rounds,
+        currentRoundIndex: 0,
         scoreA: 0,
         scoreB: 0
       }).then(() => {
-        console.log("Game state successfully written to Firebase.");
-      }).catch((error) => {
-        console.error("Error writing to Firebase:", error);
+        console.log("Game rounds submitted.");
       });
     };
 
@@ -97,8 +108,11 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
-        const newStrikes = Math.min((data.strikes || 0) + 1, 3);
-        set(gameRef, { ...data, strikes: newStrikes });
+        const round = data.rounds[data.currentRoundIndex];
+        const newStrikes = Math.min((round.strikes || 0) + 1, 3);
+        round.strikes = newStrikes;
+        data.rounds[data.currentRoundIndex] = round;
+        set(gameRef, data);
       });
     };
 
@@ -106,7 +120,8 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
-        set(gameRef, { ...data, strikes: 0 });
+        data.rounds[data.currentRoundIndex].strikes = 0;
+        set(gameRef, data);
       });
     };
 
@@ -116,7 +131,8 @@
         const data = snapshot.val();
         const scoreKey = team === 'A' ? 'scoreA' : 'scoreB';
         const newScore = (data[scoreKey] || 0) + 10;
-        set(gameRef, { ...data, [scoreKey]: newScore });
+        data[scoreKey] = newScore;
+        set(gameRef, data);
       });
     };
 
@@ -124,7 +140,20 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
-        set(gameRef, { ...data, scoreA: 0, scoreB: 0 });
+        data.scoreA = 0;
+        data.scoreB = 0;
+        set(gameRef, data);
+      });
+    };
+
+    window.nextRound = function () {
+      const gameRef = ref(db, 'game');
+      get(gameRef).then(snapshot => {
+        const data = snapshot.val();
+        if (data.currentRoundIndex < data.rounds.length - 1) {
+          data.currentRoundIndex++;
+          set(gameRef, data);
+        }
       });
     };
   </script>
