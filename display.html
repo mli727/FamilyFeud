@@ -7,6 +7,22 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js" type="module"></script>
   <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js" type="module"></script>
+  <style>
+    .animate-pulse-ring {
+      animation: pulse-ring 2s infinite;
+    }
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(0, 0, 0, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+      }
+    }
+  </style>
 </head>
 <body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8">
   <h1 class="text-4xl font-bold mb-6">🎉 Family Feud 🎉</h1>
@@ -71,6 +87,9 @@
         box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow h-20 flex items-center justify-between relative px-4';
 
         if (currentRound.answers[i] && currentRound.revealed[i]) {
+          const answerRow = document.createElement('div');
+          answerRow.className = 'flex justify-between items-center w-full';
+
           const answerText = document.createElement('div');
           answerText.className = 'font-bold';
           answerText.textContent = currentRound.answers[i].text;
@@ -79,11 +98,12 @@
           pointsBox.className = 'bg-white text-black font-bold px-3 py-1 rounded';
           pointsBox.textContent = currentRound.answers[i].points;
 
-          box.appendChild(answerText);
-          box.appendChild(pointsBox);
+          answerRow.appendChild(answerText);
+          answerRow.appendChild(pointsBox);
+          box.appendChild(answerRow);
         } else if (currentRound.answers[i]) {
           const numberCircle = document.createElement('div');
-          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold mx-auto';
+          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold mx-auto animate-pulse-ring';
           numberCircle.textContent = i + 1;
           box.appendChild(numberCircle);
         } else {
