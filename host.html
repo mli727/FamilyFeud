@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Family Feud Host</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -48,8 +48,7 @@
 
     window.addRound = function () {
       const container = document.getElementById("roundsContainer");
-      const roundIndex = roundCount;  // Capture round index here
-
+      const roundIndex = roundCount;
       const div = document.createElement("div");
       div.className = "mb-8 p-4 border rounded bg-white";
       div.innerHTML = `
@@ -76,7 +75,6 @@
 
         const revealBtn = ansDiv.querySelector(".revealBtn");
         const answerIndex = ansContainer.children.length - 1;
-        // Use captured roundIndex here:
         revealBtn.onclick = () => revealAnswer(roundIndex, answerIndex);
       };
 
@@ -119,21 +117,17 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
-        if (!data || !data.rounds || data.rounds.length === 0) {
-          console.error('No rounds found in game data');
-          return;
-        }
-        if (roundIndex < 0 || roundIndex >= data.rounds.length) {
-          console.error('Invalid roundIndex:', roundIndex);
+        if (!data || !data.rounds || roundIndex < 0 || roundIndex >= data.rounds.length) {
+          console.error('Invalid game data or round index.');
           return;
         }
         const round = data.rounds[roundIndex];
-        if (!round.revealed) round.revealed = [];
+        if (!Array.isArray(round.revealed)) round.revealed = [];
         round.revealed[answerIndex] = true;
         data.rounds[roundIndex] = round;
         set(gameRef, data);
       }).catch(err => {
-        console.error('Error reading game data:', err);
+        console.error('Error revealing answer:', err);
       });
     };
 
@@ -141,10 +135,9 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
+        if (!data?.rounds?.[data.currentRoundIndex]) return;
         const round = data.rounds[data.currentRoundIndex];
-        const newStrikes = Math.min((round.strikes || 0) + 1, 3);
-        round.strikes = newStrikes;
-        data.rounds[data.currentRoundIndex] = round;
+        round.strikes = Math.min((round.strikes || 0) + 1, 3);
         set(gameRef, data);
       });
     };
@@ -153,6 +146,7 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
+        if (!data?.rounds?.[data.currentRoundIndex]) return;
         data.rounds[data.currentRoundIndex].strikes = 0;
         set(gameRef, data);
       });
@@ -163,8 +157,7 @@
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
         const scoreKey = team === 'A' ? 'scoreA' : 'scoreB';
-        const newScore = (data[scoreKey] || 0) + 10;
-        data[scoreKey] = newScore;
+        data[scoreKey] = (data[scoreKey] || 0) + 10;
         set(gameRef, data);
       });
     };
@@ -172,11 +165,10 @@
     window.setScore = function (team) {
       const inputId = team === 'A' ? 'scoreAInput' : 'scoreBInput';
       const val = Number(document.getElementById(inputId).value);
-      const scoreKey = team === 'A' ? 'scoreA' : 'scoreB';
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
-        data[scoreKey] = val;
+        data[team === 'A' ? 'scoreA' : 'scoreB'] = val;
         set(gameRef, data);
       });
     };
