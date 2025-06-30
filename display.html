@@ -2,35 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Family Feud Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js" type="module"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js" type="module"></script>
-  <style>
-    .animate-pulse-ring {
-      animation: pulse-ring 2s infinite;
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cVFXc2KfE",
+      authDomain: "family-feud-game-13f89.firebaseapp.com",
+      projectId: "family-feud-game-13f89",
+      storageBucket: "family-feud-game-13f89.appspot.com",
+      messagingSenderId: "911043163745",
+      appId: "1:911043163745:web:dce176591585a093a21c20",
+      measurementId: "G-Q2S4LXF4XM",
+      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const gameRef = ref(db, 'game');
+
+    function createAnswerBox(number, answer, revealed, points) {
+      const container = document.createElement('div');
+      container.className = 'flex justify-between items-center bg-yellow-400 rounded-md mb-2 p-3 min-h-[60px]';
+
+      // Left side: either number in circle or answer text
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'flex items-center flex-1';
+
+      if (revealed) {
+        const answerText = document.createElement('span');
+        answerText.className = 'text-black text-xl font-semibold truncate';
+        answerText.textContent = answer;
+        leftDiv.appendChild(answerText);
+      } else {
+        // Number circle
+        const circle = document.createElement('div');
+        circle.className = 'flex justify-center items-center w-10 h-10 rounded-full border-4 border-black bg-yellow-200 text-black font-bold text-xl select-none';
+        circle.textContent = number;
+        leftDiv.appendChild(circle);
+      }
+
+      container.appendChild(leftDiv);
+
+      // Right side: points box if revealed
+      if (revealed) {
+        const pointsDiv = document.createElement('div');
+        pointsDiv.className = 'bg-yellow-600 text-black font-bold text-xl px-4 py-1 rounded ml-4 min-w-[70px] text-center select-none';
+        pointsDiv.textContent = points + ' pts';
+        container.appendChild(pointsDiv);
+      } else {
+        // blank space for alignment when not revealed
+        const spacer = document.createElement('div');
+        spacer.style.minWidth = '70px';
+        container.appendChild(spacer);
+      }
+
+      return container;
     }
-    @keyframes pulse-ring {
-      0% {
-        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.4);
+
+    function updateDisplay(data) {
+      const rounds = data.rounds || [];
+      const currentIndex = data.currentRoundIndex || 0;
+      const currentRound = rounds[currentIndex] || { question: 'Waiting for host...', answers: [], revealed: [] };
+
+      // Update question
+      document.getElementById('question').textContent = currentRound.question || 'Waiting for host...';
+
+      // Update answers container with 8 boxes (filled or empty)
+      const answersContainer = document.getElementById('answers');
+      answersContainer.innerHTML = '';
+
+      // Fill 8 slots, first column top to bottom, then second column
+      const maxSlots = 8;
+      const col1Count = 4; // top to bottom on left
+      const col2Count = 4; // top to bottom on right
+
+      // Create two columns container
+      const colsWrapper = document.createElement('div');
+      colsWrapper.className = 'flex gap-4 max-w-5xl w-full';
+
+      const col1 = document.createElement('div');
+      col1.className = 'flex flex-col flex-1 gap-2';
+      const col2 = document.createElement('div');
+      col2.className = 'flex flex-col flex-1 gap-2';
+
+      // Answers array ordered to fill col1 top to bottom, then col2 top to bottom
+      // The numbering order is 1 to 8, with 1-4 in col1 and 5-8 in col2
+
+      for (let i = 0; i < maxSlots; i++) {
+        let answerObj = currentRound.answers[i];
+        let revealed = currentRound.revealed && currentRound.revealed[i];
+        let number = i + 1;
+
+        // If no answer for this slot, leave blank box with no number
+        if (!answerObj) {
+          // blank box with no number or marks
+          const blankBox = document.createElement('div');
+          blankBox.className = 'bg-yellow-400 rounded-md mb-2 p-3 min-h-[60px] select-none';
+          // empty box, no content
+          if (i < col1Count) {
+            col1.appendChild(blankBox);
+          } else {
+            col2.appendChild(blankBox);
+          }
+          continue;
+        }
+
+        const box = createAnswerBox(number, answerObj.text, revealed, answerObj.points);
+        if (i < col1Count) {
+          col1.appendChild(box);
+        } else {
+          col2.appendChild(box);
+        }
       }
-      70% {
-        box-shadow: 0 0 0 12px rgba(0, 0, 0, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-      }
+
+      colsWrapper.appendChild(col1);
+      colsWrapper.appendChild(col2);
+      answersContainer.appendChild(colsWrapper);
+
+      // Update scores
+      document.getElementById('scoreA').textContent = data.scoreA || 0;
+      document.getElementById('scoreB').textContent = data.scoreB || 0;
+
+      // Update strikes
+      [1, 2, 3].forEach(n => {
+        const el = document.getElementById(`strike${n}`);
+        el.style.opacity = data.rounds && data.rounds[currentIndex] && data.rounds[currentIndex].strikes >= n ? '1' : '0.2';
+      });
+
+      // Update round number display
+      document.getElementById('roundNumber').textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
     }
-  </style>
+
+    onValue(gameRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      updateDisplay(data);
+    });
+  </script>
 </head>
-<body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8">
-  <h1 class="text-4xl font-bold mb-6">🎉 Family Feud 🎉</h1>
-
+<body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8 select-none">
+  <h1 class="text-4xl font-bold mb-2">🎉 Family Feud 🎉</h1>
+  <div id="roundNumber" class="text-xl font-semibold mb-4">Waiting for game to start...</div>
   <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
-
-  <div id="answers" class="grid grid-cols-2 gap-4 max-w-4xl w-full mb-8"></div>
-
+  <div id="answers" class="max-w-5xl w-full mb-8"></div>
   <div class="flex gap-20 text-center text-2xl mb-8">
     <div>
       <h2 class="font-bold">Team A</h2>
@@ -41,83 +159,10 @@
       <div id="scoreB">0</div>
     </div>
   </div>
-
-  <div class="flex gap-4">
-    <span class="text-4xl" id="strike1">❌</span>
-    <span class="text-4xl" id="strike2">❌</span>
-    <span class="text-4xl" id="strike3">❌</span>
+  <div class="flex gap-4 text-4xl mb-8 select-none">
+    <span id="strike1">❌</span>
+    <span id="strike2">❌</span>
+    <span id="strike3">❌</span>
   </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
-      authDomain: "family-feud-game-13f89.firebaseapp.com",
-      projectId: "family-feud-game-13f89",
-      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/",
-      storageBucket: "family-feud-game-13f89.appspot.com",
-      messagingSenderId: "911043163745",
-      appId: "1:911043163745:web:dce176591585a093a21c20",
-      measurementId: "G-Q2S4LXF4XM"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const gameRef = ref(db, 'game');
-    onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data || !data.rounds || data.rounds.length === 0) return;
-
-      const currentRound = data.rounds[data.currentRoundIndex];
-      if (!currentRound) return;
-
-      document.getElementById('question').textContent = currentRound.question || 'Waiting for host...';
-      document.getElementById('scoreA').textContent = data.scoreA || 0;
-      document.getElementById('scoreB').textContent = data.scoreB || 0;
-
-      const answersDiv = document.getElementById('answers');
-      answersDiv.innerHTML = '';
-
-      const totalSlots = 8;
-      for (let i = 0; i < totalSlots; i++) {
-        const box = document.createElement('div');
-        box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow h-20 flex items-center justify-between relative px-4';
-
-        if (currentRound.answers[i] && currentRound.revealed[i]) {
-          const answerRow = document.createElement('div');
-          answerRow.className = 'flex justify-between items-center w-full';
-
-          const answerText = document.createElement('div');
-          answerText.className = 'font-bold';
-          answerText.textContent = currentRound.answers[i].text;
-
-          const pointsBox = document.createElement('div');
-          pointsBox.className = 'bg-white text-black font-bold px-3 py-1 rounded';
-          pointsBox.textContent = currentRound.answers[i].points;
-
-          answerRow.appendChild(answerText);
-          answerRow.appendChild(pointsBox);
-          box.appendChild(answerRow);
-        } else if (currentRound.answers[i]) {
-          const numberCircle = document.createElement('div');
-          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold mx-auto animate-pulse-ring';
-          numberCircle.textContent = i + 1;
-          box.appendChild(numberCircle);
-        } else {
-          box.textContent = '';
-        }
-
-        answersDiv.appendChild(box);
-      }
-
-      [1, 2, 3].forEach(n => {
-        const el = document.getElementById(`strike${n}`);
-        el.style.opacity = currentRound.strikes >= n ? '1' : '0.2';
-      });
-    });
-  </script>
 </body>
 </html>
