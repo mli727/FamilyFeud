@@ -5,66 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Feud Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    #answers {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(4, 1fr);
-      gap: 12px;
-      max-width: 900px;
-      width: 100%;
-      height: 70vh;
-    }
-    .answer-box {
-      position: relative;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.5rem;
-      cursor: pointer;
-      user-select: none;
-      color: black;
-      padding: 0;
-    }
-    .answer-box.revealed {
-      background-color: #facc15;
-      cursor: default;
-      color: black;
-      padding-left: 20px;
-      justify-content: flex-start;
-    }
-    .answer-box.unrevealed {
-      background-color: #fbbf24;
-    }
-    .answer-box.empty {
-      background-color: #94a3b8;
-      cursor: default;
-      color: white;
-    }
-    .number-circle {
-      width: 48px;
-      height: 48px;
-      border: 3px solid black;
-      border-radius: 50%;
-      background: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.5rem;
-      user-select: none;
-    }
-  </style>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js" type="module"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js" type="module"></script>
 </head>
 <body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8">
   <h1 class="text-4xl font-bold mb-6">🎉 Family Feud 🎉</h1>
 
   <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
 
-  <div id="answers"></div>
+  <div id="answers" class="grid grid-cols-2 gap-4 max-w-4xl w-full mb-8"></div>
 
   <div class="flex gap-20 text-center text-2xl mb-8">
     <div>
@@ -85,13 +34,13 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
       authDomain: "family-feud-game-13f89.firebaseapp.com",
       projectId: "family-feud-game-13f89",
-      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com",
+      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/",
       storageBucket: "family-feud-game-13f89.appspot.com",
       messagingSenderId: "911043163745",
       appId: "1:911043163745:web:dce176591585a093a21c20",
@@ -100,56 +49,44 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const gameRef = ref(db, 'game');
 
+    const gameRef = ref(db, 'game');
     onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
-      if (!data) return;
+      if (!data || !data.rounds || data.rounds.length === 0) return;
 
-      document.getElementById('question').textContent = data.question || 'Waiting for host...';
+      const currentRound = data.rounds[data.currentRoundIndex];
+      if (!currentRound) return;
+
+      document.getElementById('question').textContent = currentRound.question || 'Waiting for host...';
       document.getElementById('scoreA').textContent = data.scoreA || 0;
       document.getElementById('scoreB').textContent = data.scoreB || 0;
 
       const answersDiv = document.getElementById('answers');
       answersDiv.innerHTML = '';
 
-      for (let row = 0; row < 4; row++) {
-        for (let col = 0; col < 2; col++) {
-          const index = col * 4 + row;
-          const ans = (data.answers && data.answers[index]) || null;
-          const revealed = data.revealed && data.revealed[index];
-          const box = document.createElement('div');
+      const totalSlots = 8;
+      for (let i = 0; i < totalSlots; i++) {
+        const box = document.createElement('div');
+        box.className = 'bg-yellow-300 text-black text-xl p-3 rounded shadow text-center h-20 flex items-center justify-center relative';
 
-          if (ans) {
-            box.className = 'answer-box ' + (revealed ? 'revealed' : 'unrevealed');
-            if (revealed) {
-              box.textContent = `${ans.text} - ${ans.points} pts`;
-            } else {
-              const circle = document.createElement('div');
-              circle.className = 'number-circle';
-              circle.textContent = index + 1;
-              box.appendChild(circle);
-              box.addEventListener('click', () => {
-                const newRevealed = data.revealed ? [...data.revealed] : [];
-                newRevealed[index] = true;
-                set(gameRef, { ...data, revealed: newRevealed });
-              });
-            }
-          } else {
-            box.className = 'answer-box empty';
-            const circle = document.createElement('div');
-            circle.className = 'number-circle';
-            circle.textContent = index + 1;
-            box.appendChild(circle);
-          }
-
-          answersDiv.appendChild(box);
+        if (currentRound.answers[i] && currentRound.revealed[i]) {
+          box.textContent = `${currentRound.answers[i].text} - ${currentRound.answers[i].points} pts`;
+        } else if (currentRound.answers[i]) {
+          box.textContent = '???';
+        } else {
+          const numberCircle = document.createElement('div');
+          numberCircle.className = 'w-10 h-10 rounded-full border-2 border-black flex items-center justify-center text-xl font-bold';
+          numberCircle.textContent = (i % 4) + 1;
+          box.appendChild(numberCircle);
         }
+
+        answersDiv.appendChild(box);
       }
 
       [1, 2, 3].forEach(n => {
         const el = document.getElementById(`strike${n}`);
-        el.style.opacity = data.strikes >= n ? '1' : '0.2';
+        el.style.opacity = currentRound.strikes >= n ? '1' : '0.2';
       });
     });
   </script>
