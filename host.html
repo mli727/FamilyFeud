@@ -116,11 +116,21 @@
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
+        if (!data || !data.rounds || data.rounds.length === 0) {
+          console.error('No rounds found in game data');
+          return;
+        }
+        if (roundIndex < 0 || roundIndex >= data.rounds.length) {
+          console.error('Invalid roundIndex:', roundIndex);
+          return;
+        }
         const round = data.rounds[roundIndex];
         if (!round.revealed) round.revealed = [];
         round.revealed[answerIndex] = true;
         data.rounds[roundIndex] = round;
         set(gameRef, data);
+      }).catch(err => {
+        console.error('Error reading game data:', err);
       });
     };
 
