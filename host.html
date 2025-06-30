@@ -112,7 +112,7 @@
       });
     };
 
-    window.revealAnswer = function (roundIndex, answerIndex) {
+    window.revealAnswer = function (answerIndex) {
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
         const data = snapshot.val();
@@ -120,20 +120,20 @@
           console.error('No rounds found in game data');
           return;
         }
-        if (roundIndex < 0 || roundIndex >= data.rounds.length) {
-          console.error('Invalid roundIndex:', roundIndex);
+        const currentRoundIndex = data.currentRoundIndex || 0;
+        if (currentRoundIndex < 0 || currentRoundIndex >= data.rounds.length) {
+          console.error('Invalid currentRoundIndex:', currentRoundIndex);
           return;
         }
-        const round = data.rounds[roundIndex];
+        const round = data.rounds[currentRoundIndex];
         if (!round.revealed) round.revealed = [];
         round.revealed[answerIndex] = true;
-        data.rounds[roundIndex] = round;
+        data.rounds[currentRoundIndex] = round;
         set(gameRef, data);
       }).catch(err => {
         console.error('Error reading game data:', err);
       });
     };
-
     window.addStrike = function () {
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
