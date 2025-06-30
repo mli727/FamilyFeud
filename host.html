@@ -20,14 +20,16 @@
   </div>
 
   <div class="flex gap-4 mb-6">
-    <button onclick="addScore('A')" class="px-4 py-2 bg-yellow-500 text-white rounded">+10 to Team A</button>
-    <button onclick="addScore('B')" class="px-4 py-2 bg-yellow-600 text-white rounded">+10 to Team B</button>
+    <input type="number" id="scoreAInput" placeholder="Team A score" class="p-2 border rounded w-32">
+    <button onclick="setScore('A')" class="px-4 py-2 bg-yellow-500 text-white rounded">Set Team A</button>
+    <input type="number" id="scoreBInput" placeholder="Team B score" class="p-2 border rounded w-32">
+    <button onclick="setScore('B')" class="px-4 py-2 bg-yellow-600 text-white rounded">Set Team B</button>
     <button onclick="resetScores()" class="px-4 py-2 bg-gray-700 text-white rounded">Reset Scores</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
@@ -36,7 +38,8 @@
       storageBucket: "family-feud-game-13f89.appspot.com",
       messagingSenderId: "911043163745",
       appId: "1:911043163745:web:dce176591585a093a21c20",
-      measurementId: "G-Q2S4LXF4XM"
+      measurementId: "G-Q2S4LXF4XM",
+      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -63,10 +66,15 @@
         const ansDiv = document.createElement("div");
         ansDiv.className = "flex items-center gap-2 mb-2";
         ansDiv.innerHTML = `
-          <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/3">
-          <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/3">
+          <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/5">
+          <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/5">
+          <button class="revealBtn bg-yellow-500 text-white px-2 py-1 rounded">Reveal</button>
         `;
         ansContainer.appendChild(ansDiv);
+
+        const revealBtn = ansDiv.querySelector(".revealBtn");
+        const thisIndex = ansContainer.children.length - 1;
+        revealBtn.onclick = () => revealAnswer(roundCount, thisIndex);
       };
 
       container.appendChild(div);
@@ -104,6 +112,18 @@
       });
     };
 
+    window.revealAnswer = function (roundIndex, answerIndex) {
+      const gameRef = ref(db, 'game');
+      get(gameRef).then(snapshot => {
+        const data = snapshot.val();
+        const round = data.rounds[roundIndex];
+        if (!round.revealed) round.revealed = [];
+        round.revealed[answerIndex] = true;
+        data.rounds[roundIndex] = round;
+        set(gameRef, data);
+      });
+    };
+
     window.addStrike = function () {
       const gameRef = ref(db, 'game');
       get(gameRef).then(snapshot => {
@@ -132,6 +152,18 @@
         const scoreKey = team === 'A' ? 'scoreA' : 'scoreB';
         const newScore = (data[scoreKey] || 0) + 10;
         data[scoreKey] = newScore;
+        set(gameRef, data);
+      });
+    };
+
+    window.setScore = function (team) {
+      const inputId = team === 'A' ? 'scoreAInput' : 'scoreBInput';
+      const val = Number(document.getElementById(inputId).value);
+      const scoreKey = team === 'A' ? 'scoreA' : 'scoreB';
+      const gameRef = ref(db, 'game');
+      get(gameRef).then(snapshot => {
+        const data = snapshot.val();
+        data[scoreKey] = val;
         set(gameRef, data);
       });
     };
