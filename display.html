@@ -10,7 +10,7 @@
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cVFXc2KfE",
+      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
       authDomain: "family-feud-game-13f89.firebaseapp.com",
       projectId: "family-feud-game-13f89",
       storageBucket: "family-feud-game-13f89.appspot.com",
@@ -64,9 +64,11 @@
     }
 
     function updateDisplay(data) {
-      const rounds = data.rounds || [];
-      const currentIndex = data.currentRoundIndex || 0;
+      const rounds = Array.isArray(data.rounds) ? data.rounds : [];
+      const currentIndex = typeof data.currentRoundIndex === 'number' ? data.currentRoundIndex : 0;
       const currentRound = rounds[currentIndex] || { question: 'Waiting for host...', answers: [], revealed: [] };
+      const answers = Array.isArray(currentRound.answers) ? currentRound.answers : [];
+      const revealed = Array.isArray(currentRound.revealed) ? currentRound.revealed : [];
 
       // Update question
       document.getElementById('question').textContent = currentRound.question || 'Waiting for host...';
@@ -89,20 +91,15 @@
       const col2 = document.createElement('div');
       col2.className = 'flex flex-col flex-1 gap-2';
 
-      // Answers array ordered to fill col1 top to bottom, then col2 top to bottom
-      // The numbering order is 1 to 8, with 1-4 in col1 and 5-8 in col2
-
       for (let i = 0; i < maxSlots; i++) {
-        let answerObj = currentRound.answers[i];
-        let revealed = currentRound.revealed && currentRound.revealed[i];
-        let number = i + 1;
+        const answerObj = answers[i];
+        const isRevealed = revealed[i];
+        const number = i + 1;
 
-        // If no answer for this slot, leave blank box with no number
         if (!answerObj) {
-          // blank box with no number or marks
+          // blank box with no content or number
           const blankBox = document.createElement('div');
           blankBox.className = 'bg-yellow-400 rounded-md mb-2 p-3 min-h-[60px] select-none';
-          // empty box, no content
           if (i < col1Count) {
             col1.appendChild(blankBox);
           } else {
@@ -111,7 +108,7 @@
           continue;
         }
 
-        const box = createAnswerBox(number, answerObj.text, revealed, answerObj.points);
+        const box = createAnswerBox(number, answerObj.text, isRevealed, answerObj.points);
         if (i < col1Count) {
           col1.appendChild(box);
         } else {
@@ -130,7 +127,9 @@
       // Update strikes
       [1, 2, 3].forEach(n => {
         const el = document.getElementById(`strike${n}`);
-        el.style.opacity = data.rounds && data.rounds[currentIndex] && data.rounds[currentIndex].strikes >= n ? '1' : '0.2';
+        if (el) {
+          el.style.opacity = data.rounds && data.rounds[currentIndex] && data.rounds[currentIndex].strikes >= n ? '1' : '0.2';
+        }
       });
 
       // Update round number display
@@ -144,25 +143,4 @@
     });
   </script>
 </head>
-<body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8 select-none">
-  <h1 class="text-4xl font-bold mb-2">🎉 Family Feud 🎉</h1>
-  <div id="roundNumber" class="text-xl font-semibold mb-4">Waiting for game to start...</div>
-  <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
-  <div id="answers" class="max-w-5xl w-full mb-8"></div>
-  <div class="flex gap-20 text-center text-2xl mb-8">
-    <div>
-      <h2 class="font-bold">Team A</h2>
-      <div id="scoreA">0</div>
-    </div>
-    <div>
-      <h2 class="font-bold">Team B</h2>
-      <div id="scoreB">0</div>
-    </div>
-  </div>
-  <div class="flex gap-4 text-4xl mb-8 select-none">
-    <span id="strike1">❌</span>
-    <span id="strike2">❌</span>
-    <span id="strike3">❌</span>
-  </div>
-</body>
-</html>
+<body class="bg-blue-90
