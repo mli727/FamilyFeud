@@ -223,58 +223,72 @@
       div.innerHTML = `
         <h3 class="text-lg font-bold mb-4">Fast Money Round ${fastMoneyCount + 1}</h3>
         <div class="flex gap-4">
-          <div class="flex flex-col gap-2 w-1/3" id="contestantAnswersCol"></div>
-          <div class="flex flex-wrap gap-4 w-2/3" id="topAnswersCol"></div>
+          <div class="flex flex-col gap-4 w-1/3" id="fastQuestionsCol"></div>
+          <div class="flex flex-col gap-4 w-2/3" id="fastAnswersCol"></div>
         </div>
       `;
 
-      const contestantCol = div.querySelector("#contestantAnswersCol");
-      const topAnswersCol = div.querySelector("#topAnswersCol");
+      const qCol = div.querySelector("#fastQuestionsCol");
+      const aCol = div.querySelector("#fastAnswersCol");
 
       for (let i = 0; i < 5; i++) {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = `Answer ${i + 1}`;
-        input.className = "p-2 border rounded w-full";
-        contestantCol.appendChild(input);
-      }
+        const qGroup = document.createElement("div");
+        qGroup.className = "flex flex-col gap-1";
 
-      for (let i = 0; i < 6; i++) {
-        const ansWrapper = document.createElement("div");
-        ansWrapper.className = "flex flex-col gap-1 w-[48%] border p-2 rounded bg-gray-50";
+        const qInput = document.createElement("input");
+        qInput.type = "text";
+        qInput.placeholder = `Question ${i + 1}`;
+        qInput.className = "p-2 border rounded w-full text-sm";
 
-        const ansInput = document.createElement("input");
-        ansInput.type = "text";
-        ansInput.placeholder = `Top Answer ${i + 1}`;
-        ansInput.className = "p-1 border rounded w-full text-sm";
+        const aInput = document.createElement("input");
+        aInput.type = "text";
+        aInput.placeholder = "Contestant Answer";
+        aInput.className = "p-1 border rounded w-full text-sm";
 
-        const pointsInput = document.createElement("input");
-        pointsInput.type = "number";
-        pointsInput.placeholder = "Points";
-        pointsInput.className = "p-1 border rounded w-full text-sm";
+        const revealBtn = document.createElement("button");
+        revealBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
+        revealBtn.textContent = "Reveal Contestant Answer";
 
-        const revealAnswerBtn = document.createElement("button");
-        revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded mt-1 text-sm";
-        revealAnswerBtn.textContent = "Reveal Answer";
-        revealAnswerBtn.onclick = () => alert("Reveal answer functionality to implement.");
+        qGroup.appendChild(qInput);
+        qGroup.appendChild(aInput);
+        qGroup.appendChild(revealBtn);
+        qCol.appendChild(qGroup);
 
-        const revealPointsBtn = document.createElement("button");
-        revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded mt-1 text-sm";
-        revealPointsBtn.textContent = "Reveal Points";
-        revealPointsBtn.onclick = () => alert("Reveal points functionality to implement.");
+        const topAnswersGroup = document.createElement("div");
+        topAnswersGroup.className = "flex flex-wrap gap-2";
 
-        ansWrapper.appendChild(ansInput);
-        ansWrapper.appendChild(pointsInput);
-        ansWrapper.appendChild(revealAnswerBtn);
-        ansWrapper.appendChild(revealPointsBtn);
+        for (let j = 0; j < 5; j++) {
+          const ansWrap = document.createElement("div");
+          ansWrap.className = "w-[30%] bg-gray-50 p-2 rounded border flex flex-col gap-1";
 
-        topAnswersCol.appendChild(ansWrapper);
+          const ansInput = document.createElement("input");
+          ansInput.type = "text";
+          ansInput.placeholder = `Top Answer ${j + 1}`;
+          ansInput.className = "p-1 border rounded text-sm";
+
+          const ptsInput = document.createElement("input");
+          ptsInput.type = "number";
+          ptsInput.placeholder = "Pts";
+          ptsInput.className = "p-1 border rounded text-sm";
+
+          ansWrap.appendChild(ansInput);
+          ansWrap.appendChild(ptsInput);
+          topAnswersGroup.appendChild(ansWrap);
+        }
+
+        const revealTopBtn = document.createElement("button");
+        revealTopBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded text-sm mt-2 w-full";
+        revealTopBtn.textContent = "Reveal Top Answers";
+
+        const fullGroup = document.createElement("div");
+        fullGroup.appendChild(topAnswersGroup);
+        fullGroup.appendChild(revealTopBtn);
+
+        aCol.appendChild(fullGroup);
       }
 
       container.appendChild(div);
       fastMoneyCount++;
-
-      updateFastMoneyLabels();
     };
 
     // Update round labels after adding/removing rounds
