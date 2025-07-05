@@ -9,19 +9,21 @@
 <body class="bg-gray-100 p-8">
   <h1 class="text-3xl font-bold mb-6">🎮 Host Panel</h1>
 
+  <!-- Normal Rounds -->
   <div id="roundsContainer"></div>
   <button onclick="addRound()" class="mb-6 px-4 py-2 bg-blue-600 text-white rounded">Add Round</button>
+  <button onclick="startGame()" class="mb-6 ml-4 px-4 py-2 bg-green-600 text-white rounded">Start Game</button>
 
   <hr class="my-8" />
 
-  <h2 class="text-2xl font-bold mb-4">Fast Money Rounds</h2>
+  <!-- Fast Money Rounds -->
+  <h2 class="text-2xl font-bold mb-4">⚡ Fast Money Rounds</h2>
   <div id="fastMoneyContainer"></div>
-  <button onclick="addFastMoneyRound()" class="mb-6 px-4 py-2 bg-purple-600 text-white rounded">Add Fast Money Round</button>
+  <button onclick="addFastMoneyRound()" class="mt-4 px-4 py-2 bg-purple-600 text-white rounded">Add Fast Money Round</button>
 
   <hr class="my-8" />
 
-  <button onclick="startGame()" class="mb-6 px-6 py-3 bg-green-600 text-white rounded text-lg font-semibold">Start Game</button>
-
+  <!-- Controls -->
   <div class="flex gap-4 mb-6">
     <button onclick="addStrike()" class="px-4 py-2 bg-red-500 text-white rounded">Add Strike</button>
     <button onclick="resetStrikes()" class="px-4 py-2 bg-gray-700 text-white rounded">Reset Strikes</button>
@@ -58,7 +60,7 @@
     let fastMoneyCount = 0;
 
     // Helper to create answer input for normal rounds
-    function createAnswerInput(answer = "", points = "", revealCallback = null) {
+    function createAnswerInput(answer = "", points = 0, revealCallback = null) {
       const div = document.createElement("div");
       div.className = "flex items-center gap-2 mb-2";
       div.innerHTML = `
@@ -99,7 +101,7 @@
 
         div.querySelector(".addAnswerBtn").onclick = () => {
           const answerIndex = div.querySelector(".answersContainer").children.length;
-          const ansDiv = createAnswerInput("", "", () => revealAnswer(roundIndex, answerIndex));
+          const ansDiv = createAnswerInput("", 0, () => revealAnswer(roundIndex, answerIndex));
           div.querySelector(".answersContainer").appendChild(ansDiv);
         };
 
@@ -108,7 +110,7 @@
       });
     }
 
-    // Render fast money rounds with original layout
+    // Render fast money rounds
     function renderFastMoneyRounds(fastMoneyRounds) {
       const container = document.getElementById("fastMoneyContainer");
       container.innerHTML = "";
@@ -140,9 +142,9 @@
           contestantCol.appendChild(input);
         }
 
-        // Top answers (up to 6), arrange 3 in left column, 3 in right column inside topAnswersCol using width 48% each
+        // Top answers (6), split evenly with reveal buttons
         for (let i = 0; i < 6; i++) {
-          const ansObj = fmRound.topAnswers?.[i] || { text: "", points: 0 };
+          const ansObj = fmRound.topAnswers?.[i] || { text: "", points: 0, revealedAnswer: false, revealedPoints: false };
 
           const ansWrapper = document.createElement("div");
           ansWrapper.className = "flex flex-col gap-1 w-[48%] border p-2 rounded bg-gray-50";
@@ -150,23 +152,22 @@
           const ansInput = document.createElement("input");
           ansInput.type = "text";
           ansInput.placeholder = `Top Answer ${i + 1}`;
-          ansInput.className = "p-2 border rounded w-full";
+          ansInput.className = "p-1 border rounded w-full text-sm";
           ansInput.value = ansObj.text;
 
           const pointsInput = document.createElement("input");
           pointsInput.type = "number";
           pointsInput.placeholder = "Points";
-          pointsInput.className = "p-2 border rounded w-full";
+          pointsInput.className = "p-1 border rounded w-full text-sm";
           pointsInput.value = ansObj.points;
 
-          // Reveal buttons
           const revealAnswerBtn = document.createElement("button");
-          revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded mt-1";
+          revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded mt-1 text-sm";
           revealAnswerBtn.textContent = "Reveal Answer";
           revealAnswerBtn.onclick = () => revealFastMoneyAnswer(fmIndex, i);
 
           const revealPointsBtn = document.createElement("button");
-          revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded mt-1";
+          revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded mt-1 text-sm";
           revealPointsBtn.textContent = "Reveal Points";
           revealPointsBtn.onclick = () => revealFastMoneyPoints(fmIndex, i);
 
@@ -201,7 +202,7 @@
       const answersContainer = div.querySelector(".answersContainer");
       div.querySelector(".addAnswerBtn").onclick = () => {
         const answerIndex = answersContainer.children.length;
-        const ansDiv = createAnswerInput("", "", () => revealAnswer(roundCount, answerIndex));
+        const ansDiv = createAnswerInput("", 0, () => revealAnswer(roundCount, answerIndex));
         answersContainer.appendChild(ansDiv);
       };
 
@@ -211,10 +212,9 @@
       updateRoundLabels();
     };
 
-    // Add new fast money round with restored UI layout
+    // Add new fast money round
     window.addFastMoneyRound = function () {
       const container = document.getElementById("fastMoneyContainer");
-
       const div = document.createElement("div");
       div.className = "mb-10 p-4 border rounded bg-white";
 
@@ -229,7 +229,6 @@
       const contestantCol = div.querySelector("#contestantAnswersCol");
       const topAnswersCol = div.querySelector("#topAnswersCol");
 
-      // Add 5 empty contestant answer inputs
       for (let i = 0; i < 5; i++) {
         const input = document.createElement("input");
         input.type = "text";
@@ -238,7 +237,6 @@
         contestantCol.appendChild(input);
       }
 
-      // Add 6 empty top answers with points and reveal buttons
       for (let i = 0; i < 6; i++) {
         const ansWrapper = document.createElement("div");
         ansWrapper.className = "flex flex-col gap-1 w-[48%] border p-2 rounded bg-gray-50";
@@ -246,20 +244,20 @@
         const ansInput = document.createElement("input");
         ansInput.type = "text";
         ansInput.placeholder = `Top Answer ${i + 1}`;
-        ansInput.className = "p-2 border rounded w-full";
+        ansInput.className = "p-1 border rounded w-full text-sm";
 
         const pointsInput = document.createElement("input");
         pointsInput.type = "number";
         pointsInput.placeholder = "Points";
-        pointsInput.className = "p-2 border rounded w-full";
+        pointsInput.className = "p-1 border rounded w-full text-sm";
 
         const revealAnswerBtn = document.createElement("button");
-        revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded mt-1";
+        revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded mt-1 text-sm";
         revealAnswerBtn.textContent = "Reveal Answer";
         revealAnswerBtn.onclick = () => alert("Reveal answer functionality to implement.");
 
         const revealPointsBtn = document.createElement("button");
-        revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded mt-1";
+        revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded mt-1 text-sm";
         revealPointsBtn.textContent = "Reveal Points";
         revealPointsBtn.onclick = () => alert("Reveal points functionality to implement.");
 
@@ -408,7 +406,7 @@
         const answers = [];
 
         answerEls.forEach((input, i) => {
-          const text = input.value;
+          const text = input.value.trim();
           const points = parseInt(pointEls[i].value, 10);
           if (text && !isNaN(points)) {
             answers.push({ text, points });
@@ -422,12 +420,12 @@
       const fastMoneyRounds = [];
       const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
       fmDivs.forEach(div => {
-        const contestantAnswers = Array.from(div.querySelectorAll("#contestantAnswersCol > input")).map(input => input.value);
+        const contestantAnswers = Array.from(div.querySelectorAll("#contestantAnswersCol > input")).map(input => input.value.trim());
         const topAnswerDivs = div.querySelectorAll("#topAnswersCol > div");
         const topAnswers = Array.from(topAnswerDivs).map(topDiv => {
           const inputs = topDiv.querySelectorAll("input");
           return {
-            text: inputs[0].value,
+            text: inputs[0].value.trim(),
             points: parseInt(inputs[1].value, 10) || 0,
             revealedAnswer: false,
             revealedPoints: false
