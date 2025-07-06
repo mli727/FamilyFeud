@@ -130,7 +130,8 @@
 
         questionRows.forEach(row => {
           const qInput = row.querySelector("input[placeholder^='Question']").value;
-          const aInput = row.querySelector("input[placeholder='Contestant Answer']").value;
+          const aInput1 = row.querySelector("input[placeholder='Contestant Answer 1']").value;
+          const aInput2 = row.querySelector("input[placeholder='Contestant Answer 2']").value;
           const topAnswerInputs = row.querySelectorAll("input[placeholder^='Top Answer']");
           const pointInputs = row.querySelectorAll("input[placeholder='Pts']");
 
@@ -139,7 +140,7 @@
             points: parseInt(pointInputs[idx].value, 10) || 0
           }));
 
-          questions.push({ question: qInput, contestantAnswer: aInput, topAnswers });
+          questions.push({ question: qInput, contestantAnswer1: aInput1, contestantAnswer2: aInput2, topAnswers });
         });
 
         rounds.push({ questions });
@@ -161,44 +162,17 @@
       });
     }
 
-    // Add new normal round
-    window.addRound = function () {
-      const container = document.getElementById("roundsContainer");
-      const div = document.createElement("div");
-      div.className = "mb-8 p-4 border rounded bg-white";
-      div.innerHTML = `
-        <h2 class="text-xl font-bold mb-2">Round ${roundCount + 1}</h2>
-        <div class="mb-2">
-          <label class="block mb-1 font-semibold">Question:</label>
-          <input type="text" class="questionInput w-full p-2 border rounded" value="">
-        </div>
-        <div class="answersContainer"></div>
-        <button class="addAnswerBtn mt-2 px-3 py-1 bg-blue-500 text-white rounded">Add Answer</button>
-      `;
-
-      const answersContainer = div.querySelector(".answersContainer");
-      div.querySelector(".addAnswerBtn").onclick = () => {
-        const answerIndex = answersContainer.children.length;
-        const ansDiv = createAnswerInput("", 0, () => revealAnswer(roundCount, answerIndex));
-        answersContainer.appendChild(ansDiv);
-      };
-
-      container.appendChild(div);
-      roundCount++;
-
-      updateRoundLabels();
-    };
-
-    // Add new fast money round
-    window.addFastMoneyRound = function () {
+    window.addFastMoneyRound = function (prefill = null) {
       const container = document.getElementById("fastMoneyContainer");
       const div = document.createElement("div");
       div.className = "mb-10 p-4 border rounded bg-white";
 
       div.innerHTML = `
         <h3 class="text-lg font-bold mb-4">Fast Money Round ${fastMoneyCount + 1}</h3>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6"></div>
       `;
+
+      const content = div.querySelector(".flex.flex-col.gap-6");
 
       for (let i = 0; i < 5; i++) {
         const row = document.createElement("div");
@@ -211,18 +185,27 @@
         qInput.type = "text";
         qInput.placeholder = `Question ${i + 1}`;
         qInput.className = "p-2 border rounded w-full text-sm";
+        qInput.value = prefill?.questions?.[i]?.question || "";
 
-        const aInput = document.createElement("input");
-        aInput.type = "text";
-        aInput.placeholder = "Contestant Answer";
-        aInput.className = "p-1 border rounded w-full text-sm";
+        const aInput1 = document.createElement("input");
+        aInput1.type = "text";
+        aInput1.placeholder = "Contestant Answer 1";
+        aInput1.className = "p-1 border rounded w-full text-sm";
+        aInput1.value = prefill?.questions?.[i]?.contestantAnswer1 || "";
+
+        const aInput2 = document.createElement("input");
+        aInput2.type = "text";
+        aInput2.placeholder = "Contestant Answer 2";
+        aInput2.className = "p-1 border rounded w-full text-sm";
+        aInput2.value = prefill?.questions?.[i]?.contestantAnswer2 || "";
 
         const revealBtn = document.createElement("button");
         revealBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
-        revealBtn.textContent = "Reveal Contestant Answer";
+        revealBtn.textContent = `Reveal: ${aInput1.value || 'Answer 1'} & ${aInput2.value || 'Answer 2'}`;
 
         leftCol.appendChild(qInput);
-        leftCol.appendChild(aInput);
+        leftCol.appendChild(aInput1);
+        leftCol.appendChild(aInput2);
         leftCol.appendChild(revealBtn);
 
         const rightCol = document.createElement("div");
@@ -239,11 +222,13 @@
           ansInput.type = "text";
           ansInput.placeholder = `Top Answer ${j + 1}`;
           ansInput.className = "p-1 border rounded text-sm";
+          ansInput.value = prefill?.questions?.[i]?.topAnswers?.[j]?.text || "";
 
           const ptsInput = document.createElement("input");
           ptsInput.type = "number";
           ptsInput.placeholder = "Pts";
           ptsInput.className = "p-1 border rounded text-sm";
+          ptsInput.value = prefill?.questions?.[i]?.topAnswers?.[j]?.points || "";
 
           ansWrap.appendChild(ansInput);
           ansWrap.appendChild(ptsInput);
@@ -259,7 +244,7 @@
 
         row.appendChild(leftCol);
         row.appendChild(rightCol);
-        div.querySelector(".flex.flex-col.gap-6").appendChild(row);
+        content.appendChild(row);
       }
 
       container.appendChild(div);
