@@ -156,7 +156,14 @@
       });
 
       const refPath = ref(db, "fastMoneyRounds");
-      set(refPath, rounds);
+      set(refPath, rounds)
+        .then(() => {
+          alert("✅ Fast Money rounds saved successfully!");
+        })
+        .catch((error) => {
+          console.error("❌ Failed to save Fast Money data:", error);
+          alert("❌ Error saving Fast Money data. See console for details.");
+        });
     }
 
     window.saveFastMoneyData = saveFastMoneyData;
