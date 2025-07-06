@@ -159,6 +159,8 @@
       set(refPath, rounds);
     }
 
+    window.saveFastMoneyData = saveFastMoneyData;
+
     function loadFastMoneyData() {
       const refPath = ref(db, "fastMoneyRounds");
       get(refPath).then(snapshot => {
