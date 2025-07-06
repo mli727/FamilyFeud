@@ -172,9 +172,12 @@
       const refPath = ref(db, "fastMoneyRounds");
       get(refPath).then(snapshot => {
         const data = snapshot.val();
-        if (data) {
+        console.log("Loaded data from Firebase:", data);
+        if (Array.isArray(data)) {
           data.forEach(round => {
-            addFastMoneyRound(round);
+            if (round && Array.isArray(round.questions)) {
+              addFastMoneyRound(round);
+            }
           });
         }
       });
