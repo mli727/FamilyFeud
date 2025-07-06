@@ -131,7 +131,9 @@
         questionRows.forEach(row => {
           const qInput = row.querySelector("input[placeholder^='Question']").value;
           const aInput1 = row.querySelector("input[placeholder='Contestant Answer 1']").value;
+          const aPts1 = parseInt(row.querySelector("input[placeholder='Pts 1']").value, 10) || 0;
           const aInput2 = row.querySelector("input[placeholder='Contestant Answer 2']").value;
+          const aPts2 = parseInt(row.querySelector("input[placeholder='Pts 2']").value, 10) || 0;
           const topAnswerInputs = row.querySelectorAll("input[placeholder^='Top Answer']");
           const pointInputs = row.querySelectorAll("input[placeholder='Pts']");
 
@@ -140,7 +142,14 @@
             points: parseInt(pointInputs[idx].value, 10) || 0
           }));
 
-          questions.push({ question: qInput, contestantAnswer1: aInput1, contestantAnswer2: aInput2, topAnswers });
+          questions.push({
+            question: qInput,
+            contestantAnswer1: aInput1,
+            contestantPoints1: aPts1,
+            contestantAnswer2: aInput2,
+            contestantPoints2: aPts2,
+            topAnswers
+          });
         });
 
         rounds.push({ questions });
@@ -179,7 +188,7 @@
         row.className = "flex gap-4 items-start w-full";
 
         const leftCol = document.createElement("div");
-        leftCol.className = "w-1/3 flex flex-col gap-1";
+        leftCol.className = "w-1/3 flex flex-col gap-2";
 
         const qInput = document.createElement("input");
         qInput.type = "text";
@@ -187,26 +196,55 @@
         qInput.className = "p-2 border rounded w-full text-sm";
         qInput.value = prefill?.questions?.[i]?.question || "";
 
+        const answerRow1 = document.createElement("div");
+        answerRow1.className = "flex gap-2 items-center";
+
         const aInput1 = document.createElement("input");
         aInput1.type = "text";
         aInput1.placeholder = "Contestant Answer 1";
-        aInput1.className = "p-1 border rounded w-full text-sm";
+        aInput1.className = "p-1 border rounded w-4/5 text-sm";
         aInput1.value = prefill?.questions?.[i]?.contestantAnswer1 || "";
+
+        const ptsInput1 = document.createElement("input");
+        ptsInput1.type = "number";
+        ptsInput1.placeholder = "Pts 1";
+        ptsInput1.className = "p-1 border rounded w-1/5 text-sm";
+        ptsInput1.value = prefill?.questions?.[i]?.contestantPoints1 || "";
+
+        answerRow1.appendChild(aInput1);
+        answerRow1.appendChild(ptsInput1);
+
+        const answerRow2 = document.createElement("div");
+        answerRow2.className = "flex gap-2 items-center";
 
         const aInput2 = document.createElement("input");
         aInput2.type = "text";
         aInput2.placeholder = "Contestant Answer 2";
-        aInput2.className = "p-1 border rounded w-full text-sm";
+        aInput2.className = "p-1 border rounded w-4/5 text-sm";
         aInput2.value = prefill?.questions?.[i]?.contestantAnswer2 || "";
 
-        const revealBtn = document.createElement("button");
-        revealBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
-        revealBtn.textContent = `Reveal: ${aInput1.value || 'Answer 1'} & ${aInput2.value || 'Answer 2'}`;
+        const ptsInput2 = document.createElement("input");
+        ptsInput2.type = "number";
+        ptsInput2.placeholder = "Pts 2";
+        ptsInput2.className = "p-1 border rounded w-1/5 text-sm";
+        ptsInput2.value = prefill?.questions?.[i]?.contestantPoints2 || "";
+
+        answerRow2.appendChild(aInput2);
+        answerRow2.appendChild(ptsInput2);
+
+        const revealAnswerBtn = document.createElement("button");
+        revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
+        revealAnswerBtn.textContent = `Reveal Answers`;
+
+        const revealPointsBtn = document.createElement("button");
+        revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded text-sm w-full";
+        revealPointsBtn.textContent = `Reveal Points`;
 
         leftCol.appendChild(qInput);
-        leftCol.appendChild(aInput1);
-        leftCol.appendChild(aInput2);
-        leftCol.appendChild(revealBtn);
+        leftCol.appendChild(answerRow1);
+        leftCol.appendChild(answerRow2);
+        leftCol.appendChild(revealAnswerBtn);
+        leftCol.appendChild(revealPointsBtn);
 
         const rightCol = document.createElement("div");
         rightCol.className = "w-2/3 flex flex-col gap-2";
@@ -236,7 +274,7 @@
         }
 
         const revealTopBtn = document.createElement("button");
-        revealTopBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded text-sm w-full";
+        revealTopBtn.className = "bg-yellow-700 text-white px-2 py-1 rounded text-sm w-full";
         revealTopBtn.textContent = "Reveal Top Answers";
 
         rightCol.appendChild(topAnswersWrap);
