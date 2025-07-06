@@ -156,6 +156,7 @@
       });
 
       const refPath = ref(db, "fastMoneyRounds");
+      console.log("Saving Fast Money Data:", rounds);
       set(refPath, rounds)
         .then(() => {
           alert("✅ Fast Money rounds saved successfully!");
@@ -172,17 +173,20 @@
       const refPath = ref(db, "fastMoneyRounds");
       get(refPath).then(snapshot => {
         const data = snapshot.val();
-        console.log("Loaded data from Firebase:", data);
         if (Array.isArray(data)) {
           data.forEach(round => {
             if (round && Array.isArray(round.questions)) {
               addFastMoneyRound(round);
             }
           });
+        } else {
+          console.warn("No fast money data found or data is malformed:", data);
         }
+      }).catch(error => {
+        console.error("Failed to load fast money data:", error);
       });
     }
-
+    
     window.addFastMoneyRound = function (prefill = null) {
       const container = document.getElementById("fastMoneyContainer");
       const div = document.createElement("div");
