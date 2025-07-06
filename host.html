@@ -23,19 +23,26 @@
   <hr class="my-8" />
 
   <!-- Controls -->
-  <div class="flex gap-4 mb-6">
-    <button onclick="startGame()" class="mb-6 ml-4 px-4 py-2 bg-green-600 text-white rounded">Start Game</button>
-    <button onclick="addStrike()" class="mb-6 ml-4 px-4 py-2 bg-red-500 text-white rounded">Add Strike</button>
-    <button onclick="resetStrikes()" class="mb-6 ml-4 px-4 py-2 bg-gray-700 text-white rounded">Reset Strikes</button>
-    <button onclick="nextRound()" class="mb-6 ml-4 px-4 py-2 bg-indigo-600 text-white rounded">Next Round</button>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <button onclick="startGame()" class="px-4 py-2 bg-green-600 text-white rounded">Start Game</button>
+    <button onclick="addStrike()" class="px-4 py-2 bg-red-500 text-white rounded">Add Strike</button>
+    <button onclick="resetStrikes()" class="px-4 py-2 bg-gray-700 text-white rounded">Reset Strikes</button>
+    <button onclick="nextRound()" class="px-4 py-2 bg-indigo-600 text-white rounded">Next Round</button>
   </div>
-
-  <div class="flex gap-4 mb-6">
-    <input type="number" id="scoreAInput" placeholder="Team A score" class="p-2 border rounded w-32" />
-    <button onclick="setScore('A')" class="px-4 py-2 bg-yellow-500 text-white rounded">Set Team A</button>
-    <input type="number" id="scoreBInput" placeholder="Team B score" class="p-2 border rounded w-32" />
-    <button onclick="setScore('B')" class="px-4 py-2 bg-yellow-600 text-white rounded">Set Team B</button>
-    <button onclick="resetScores()" class="px-4 py-2 bg-gray-700 text-white rounded">Reset Scores</button>
+  
+  <!-- Score Controls -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="flex items-center gap-2">
+      <input type="number" id="scoreAInput" placeholder="Team A score" class="p-2 border rounded w-full" />
+      <button onclick="setScore('A')" class="px-4 py-2 bg-yellow-500 text-white rounded">Set Team A</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="number" id="scoreBInput" placeholder="Team B score" class="p-2 border rounded w-full" />
+      <button onclick="setScore('B')" class="px-4 py-2 bg-yellow-600 text-white rounded">Set Team B</button>
+    </div>
+    <div class="flex items-center justify-start sm:justify-end">
+      <button onclick="resetScores()" class="px-4 py-2 bg-gray-700 text-white rounded w-full sm:w-auto">Reset Scores</button>
+    </div>
   </div>
 
   <script type="module">
