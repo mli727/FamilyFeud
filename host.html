@@ -120,54 +120,53 @@
     }
 
     // Render fast money rounds
-    function saveFastMoneyData() {
+    window.saveFastMoneyData = function () {
       const rounds = [];
       const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
-
+    
       fmDivs.forEach(div => {
         const questionRows = div.querySelectorAll(".flex.gap-4.items-start");
         const questions = [];
-
+    
         questionRows.forEach(row => {
-          const qInput = row.querySelector("input[placeholder^='Question']").value;
-          const aInput1 = row.querySelector("input[placeholder='Contestant Answer 1']").value;
-          const aPts1 = parseInt(row.querySelector("input[placeholder='Pts 1']").value, 10) || 0;
-          const aInput2 = row.querySelector("input[placeholder='Contestant Answer 2']").value;
-          const aPts2 = parseInt(row.querySelector("input[placeholder='Pts 2']").value, 10) || 0;
-          const topAnswerInputs = row.querySelectorAll("input[placeholder^='Top Answer']");
-          const pointInputs = row.querySelectorAll("input[placeholder='Pts']");
-
-          const topAnswers = Array.from(topAnswerInputs).map((input, idx) => ({
-            text: input.value,
-            points: parseInt(pointInputs[idx].value, 10) || 0
-          }));
-
+          const question = row.querySelector("input[placeholder^='Question']")?.value || "";
+    
+          const contestantAnswer1 = row.querySelector("input[placeholder='Contestant Answer 1']")?.value || "";
+          const contestantPoints1 = parseInt(row.querySelector("input[placeholder='Pts 1']")?.value || "0", 10);
+    
+          const contestantAnswer2 = row.querySelector("input[placeholder='Contestant Answer 2']")?.value || "";
+          const contestantPoints2 = parseInt(row.querySelector("input[placeholder='Pts 2']")?.value || "0", 10);
+    
+          const topAnswers = Array.from(row.querySelectorAll("input[placeholder^='Top Answer']")).map((input, idx) => {
+            const pointsInput = row.querySelectorAll("input[placeholder='Pts']")[idx];
+            return {
+              text: input.value,
+              points: parseInt(pointsInput?.value || "0", 10)
+            };
+          });
+    
           questions.push({
-            question: qInput,
-            contestantAnswer1: aInput1,
-            contestantPoints1: aPts1,
-            contestantAnswer2: aInput2,
-            contestantPoints2: aPts2,
+            question,
+            contestantAnswer1,
+            contestantPoints1,
+            contestantAnswer2,
+            contestantPoints2,
             topAnswers
           });
         });
-
+    
         rounds.push({ questions });
       });
-
-      const refPath = ref(db, "fastMoneyRounds");
-      console.log("Saving Fast Money Data:", rounds);
-      set(refPath, rounds)
-        .then(() => {
-          alert("✅ Fast Money rounds saved successfully!");
-        })
-        .catch((error) => {
-          console.error("❌ Failed to save Fast Money data:", error);
-          alert("❌ Error saving Fast Money data. See console for details.");
-        });
-    }
-
-    window.saveFastMoneyData = saveFastMoneyData;
+    
+      const dbRef = firebase.database().ref("fastMoneyRounds");
+      dbRef.set(rounds).then(() => {
+        alert("✅ Fast Money data saved!");
+        console.log("%c✅ Fast Money data saved!", "color: green; font-weight: bold;");
+      }).catch(err => {
+        console.error("Error saving Fast Money data:", err);
+        alert("❌ Failed to save Fast Money data.");
+      });
+    };
 
     function loadFastMoneyData() {
       const refPath = ref(db, "fastMoneyRounds");
