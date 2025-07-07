@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -46,445 +50,658 @@
   </div>
 
   <script type="module">
+    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-
+    
     const firebaseConfig = {
-      apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
-      authDomain: "family-feud-game-13f89.firebaseapp.com",
-      projectId: "family-feud-game-13f89",
-      storageBucket: "family-feud-game-13f89.appspot.com",
-      messagingSenderId: "911043163745",
-      appId: "1:911043163745:web:dce176591585a093a21c20",
-      measurementId: "G-Q2S4LXF4XM",
-      databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/"
+        apiKey: "AIzaSyCS99cX6swqx4--HiWD_kDh1cZVFXc2KfE",
+        authDomain: "family-feud-game-13f89.firebaseapp.com",
+        projectId: "family-feud-game-13f89",
+        storageBucket: "family-feud-game-13f89.appspot.com",
+        messagingSenderId: "911043163745",
+        appId: "1:911043163745:web:dce176591585a093a21c20",
+        measurementId: "G-Q2S4LXF4XM",
+        databaseURL: "https://family-feud-game-13f89-default-rtdb.firebaseio.com/"
     };
-
+    
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
+    
     let roundCount = 0;
     let fastMoneyCount = 0;
-
+    
     // Helper to create answer input for normal rounds
     function createAnswerInput(answer = "", points = 0, revealCallback = null) {
-      const div = document.createElement("div");
-      div.className = "flex items-center gap-2 mb-2";
-      div.innerHTML = `
-        <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/5" value="${answer}">
-        <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/5" value="${points}">
-        <button class="revealBtn bg-yellow-500 text-white px-2 py-1 rounded">Reveal</button>
-      `;
-      if (revealCallback) {
-        div.querySelector(".revealBtn").onclick = revealCallback;
-      }
-      return div;
+        const div = document.createElement("div");
+        div.className = "flex items-center gap-2 mb-2";
+        div.innerHTML = `
+            <input type="text" placeholder="Answer" class="answerText p-2 border rounded w-2/5" value="${answer}">
+            <input type="number" placeholder="Points" class="answerPoints p-2 border rounded w-1/5" value="${points}">
+            <button class="revealBtn bg-yellow-500 text-white px-2 py-1 rounded">Reveal</button>
+        `;
+        if (revealCallback) {
+            div.querySelector(".revealBtn").onclick = revealCallback;
+        }
+        return div;
     }
-
-    // Render normal rounds
-    function renderSavedRounds(rounds =[]) {
-      if (!Array.isArray(rounds)) return;
-      
-      const container = document.getElementById("roundsContainer");
-      container.innerHTML = "";
-      roundCount = 0;
-
-      rounds.forEach((round, roundIndex) => {
+    
+    // --- Add Normal Round ---
+    window.addRound = function (prefill = null) {
+        const container = document.getElementById("roundsContainer");
         const div = document.createElement("div");
         div.className = "mb-8 p-4 border rounded bg-white";
+        const currentRoundIndex = roundCount; // Store the index for this round
+    
         div.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">Round ${roundIndex + 1}</h2>
-          <div class="mb-2">
-            <label class="block mb-1 font-semibold">Question:</label>
-            <input type="text" class="questionInput w-full p-2 border rounded" value="${round.question || ''}">
-          </div>
-          <div class="answersContainer"></div>
-          <button class="addAnswerBtn mt-2 px-3 py-1 bg-blue-500 text-white rounded">Add Answer</button>
+            <h2 class="text-xl font-bold mb-2">Round ${currentRoundIndex + 1}</h2>
+            <div class="mb-2">
+                <label class="block mb-1 font-semibold">Question:</label>
+                <input type="text" class="questionInput w-full p-2 border rounded" value="${prefill?.question || ''}">
+            </div>
+            <div class="answersContainer"></div>
+            <button class="addAnswerBtn mt-2 px-3 py-1 bg-blue-500 text-white rounded">Add Answer</button>
         `;
-
+    
         const answersContainer = div.querySelector(".answersContainer");
-        round.answers.forEach((answer, answerIndex) => {
-          const ansDiv = createAnswerInput(answer.text, answer.points, () => revealAnswer(roundIndex, answerIndex));
-          answersContainer.appendChild(ansDiv);
+        (prefill?.answers || []).forEach((answer, answerIndex) => {
+            const ansDiv = createAnswerInput(answer.text, answer.points, () => revealAnswer(currentRoundIndex, answerIndex));
+            answersContainer.appendChild(ansDiv);
         });
-
+    
         div.querySelector(".addAnswerBtn").onclick = () => {
-          const answerIndex = div.querySelector(".answersContainer").children.length;
-          const ansDiv = createAnswerInput("", 0, () => revealAnswer(roundIndex, answerIndex));
-          div.querySelector(".answersContainer").appendChild(ansDiv);
+            const answerIndex = answersContainer.children.length;
+            const ansDiv = createAnswerInput("", 0, () => revealAnswer(currentRoundIndex, answerIndex));
+            answersContainer.appendChild(ansDiv);
         };
-
+    
         container.appendChild(div);
         roundCount++;
-      });
+        updateRoundLabels();
+    };
+    
+    
+    // Render normal rounds (initial load)
+    function renderSavedRounds(rounds = []) {
+        if (!Array.isArray(rounds)) return;
+    
+        const container = document.getElementById("roundsContainer");
+        container.innerHTML = ""; // Clear existing rounds
+        roundCount = 0; // Reset count before rendering
+    
+        rounds.forEach((round) => {
+            window.addRound(round); // Use the addRound function to render
+        });
     }
-
-    // Render fast money rounds
+    
+    // --- Fast Money Data Handling ---
+    // This function will collect all Fast Money data from the host panel
+    // and save it to Firebase under the 'game' object.
     window.saveFastMoneyData = function () {
-      const rounds = [];
-      const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
+        const rounds = [];
+        const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
     
-      fmDivs.forEach(div => {
-        const questionRows = div.querySelectorAll(".flex.gap-4.items-start");
-        const questions = [];
+        fmDivs.forEach(div => {
+            const questionRows = div.querySelectorAll(".fast-money-question-row"); // Use a class for specific targeting
+            const questions = [];
     
-        questionRows.forEach(row => {
-          const question = row.querySelector("input[placeholder^='Question']")?.value || "";
+            questionRows.forEach(row => {
+                const question = row.querySelector("input[placeholder^='Question']")?.value || "";
     
-          const contestantAnswer1 = row.querySelector("input[placeholder='Contestant Answer 1']")?.value || "";
-          const contestantPoints1 = parseInt(row.querySelector("input[placeholder='Pts 1']")?.value || "0", 10);
+                // Get contestant answers and points for this question
+                const contestantAnswer1 = row.querySelector(".contestant-answer-1")?.value || "";
+                const contestantPoints1 = parseInt(row.querySelector(".contestant-points-1")?.value || "0", 10);
     
-          const contestantAnswer2 = row.querySelector("input[placeholder='Contestant Answer 2']")?.value || "";
-          const contestantPoints2 = parseInt(row.querySelector("input[placeholder='Pts 2']")?.value || "0", 10);
+                const contestantAnswer2 = row.querySelector(".contestant-answer-2")?.value || "";
+                const contestantPoints2 = parseInt(row.querySelector(".contestant-points-2")?.value || "0", 10);
     
-          const topAnswers = Array.from(row.querySelectorAll("input[placeholder^='Top Answer']")).map((input, idx) => {
-            const pointsInput = row.querySelectorAll("input[placeholder='Pts']")[idx];
-            return {
-              text: input.value,
-              points: parseInt(pointsInput?.value || "0", 10)
-            };
-          });
+                const topAnswers = Array.from(row.querySelectorAll(".top-answer-input")).map((input, idx) => {
+                    const pointsInput = row.querySelectorAll(".top-answer-points")[idx];
+                    return {
+                        text: input.value,
+                        points: parseInt(pointsInput?.value || "0", 10),
+                        revealedAnswer: false, // Default to not revealed
+                        revealedPoints: false  // Default to not revealed
+                    };
+                });
     
-          questions.push({
-            question,
-            contestantAnswer1,
-            contestantPoints1,
-            contestantAnswer2,
-            contestantPoints2,
-            topAnswers
-          });
+                questions.push({
+                    question,
+                    contestantAnswer1,
+                    contestantPoints1,
+                    contestantAnswer2,
+                    contestantPoints2,
+                    topAnswers
+                });
+            });
+    
+            rounds.push({ questions });
         });
     
-        rounds.push({ questions });
-      });
-    
-      const dbRef = firebase.database().ref("fastMoneyRounds");
-      dbRef.set(rounds).then(() => {
-        alert("✅ Fast Money data saved!");
-        console.log("%c✅ Fast Money data saved!", "color: green; font-weight: bold;");
-      }).catch(err => {
-        console.error("Error saving Fast Money data:", err);
-        alert("❌ Failed to save Fast Money data.");
-      });
+        // Update only the fastMoneyRounds part of the game object in Firebase
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const currentGameState = snapshot.val() || {};
+            currentGameState.fastMoneyRounds = rounds;
+            set(gameRef, currentGameState)
+                .then(() => {
+                    alert("✅ Fast Money data saved!");
+                    console.log("%c✅ Fast Money data saved!", "color: green; font-weight: bold;");
+                })
+                .catch(err => {
+                    console.error("Error saving Fast Money data:", err);
+                    alert("❌ Failed to save Fast Money data.");
+                });
+        }).catch(error => {
+            console.error("Error fetching game data before saving Fast Money:", error);
+        });
     };
-
+    
+    
+    // Function to load and render fast money data from Firebase
     function loadFastMoneyData() {
-      const refPath = ref(db, "fastMoneyRounds");
-      get(refPath).then(snapshot => {
-        const data = snapshot.val();
-        if (Array.isArray(data)) {
-          data.forEach(round => {
-            if (round && Array.isArray(round.questions)) {
-              addFastMoneyRound(round);
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val();
+            if (data?.fastMoneyRounds && Array.isArray(data.fastMoneyRounds)) {
+                data.fastMoneyRounds.forEach(round => {
+                    // Ensure each round has questions before trying to add it
+                    if (round && Array.isArray(round.questions)) {
+                        window.addFastMoneyRound(round);
+                    }
+                });
+            } else {
+                console.warn("No fast money data found or data is malformed in 'game' object:", data);
             }
-          });
-        } else {
-          console.warn("No fast money data found or data is malformed:", data);
-        }
-      }).catch(error => {
-        console.error("Failed to load fast money data:", error);
-      });
+        }).catch(error => {
+            console.error("Failed to load fast money data:", error);
+        });
     }
     
+    // Add Fast Money Round function
     window.addFastMoneyRound = function (prefill = null) {
-      const container = document.getElementById("fastMoneyContainer");
-      const div = document.createElement("div");
-      div.className = "mb-10 p-4 border rounded bg-white";
-
-      div.innerHTML = `
-        <h3 class="text-lg font-bold mb-4">Fast Money Round ${fastMoneyCount + 1}</h3>
-        <div class="flex flex-col gap-6"></div>
-      `;
-
-      const content = div.querySelector(".flex.flex-col.gap-6");
-
-    for (let i = 0; i < 5; i++) {
-      const row = document.createElement("div");
-      row.className = "flex gap-4 items-start w-full";
+        const container = document.getElementById("fastMoneyContainer");
+        const div = document.createElement("div");
+        div.className = "mb-10 p-4 border rounded bg-white fast-money-round";
+        const currentFastMoneyRoundIndex = fastMoneyCount; // Capture index for closures
     
-      const leftCol = document.createElement("div");
-      leftCol.className = "w-1/3 flex flex-col gap-2";
+        div.innerHTML = `
+            <h3 class="text-lg font-bold mb-4">Fast Money Round ${currentFastMoneyRoundIndex + 1}</h3>
+            <div class="flex flex-col gap-6"></div>
+        `;
     
-      const currentQuestion = prefill?.questions?.[i] || {};
+        const content = div.querySelector(".flex.flex-col.gap-6");
     
-      const qInput = document.createElement("input");
-      qInput.type = "text";
-      qInput.placeholder = `Question ${i + 1}`;
-      qInput.className = "p-2 border rounded w-full text-sm";
-      qInput.value = currentQuestion.question || "";
-
-      const answerRow1 = document.createElement("div");
-      answerRow1.className = "flex gap-2 items-center";
+        for (let i = 0; i < 5; i++) {
+            const row = document.createElement("div");
+            row.className = "flex gap-4 items-start w-full fast-money-question-row"; // Add a class for easy selection later
     
-      const aInput1 = document.createElement("input");
-      aInput1.type = "text";
-      aInput1.placeholder = "Contestant Answer 1";
-      aInput1.className = "p-1 border rounded w-4/5 text-sm";
-      aInput1.value = currentQuestion.contestantAnswer1 || "";
+            const leftCol = document.createElement("div");
+            leftCol.className = "w-1/3 flex flex-col gap-2";
     
-      const ptsInput1 = document.createElement("input");
-      ptsInput1.type = "number";
-      ptsInput1.placeholder = "Pts 1";
-      ptsInput1.className = "p-1 border rounded w-1/5 text-sm";
-      ptsInput1.value = currentQuestion.contestantPoints1 || "";
-
-      answerRow1.appendChild(aInput1);
-      answerRow1.appendChild(ptsInput1);
-
-      const answerRow2 = document.createElement("div");
-      answerRow2.className = "flex gap-2 items-center";
+            const currentQuestion = prefill?.questions?.[i] || {};
     
-      const aInput2 = document.createElement("input");
-      aInput2.type = "text";
-      aInput2.placeholder = "Contestant Answer 2";
-      aInput2.className = "p-1 border rounded w-4/5 text-sm";
-      aInput2.value = currentQuestion.contestantAnswer2 || "";
+            const qInput = document.createElement("input");
+            qInput.type = "text";
+            qInput.placeholder = `Question ${i + 1}`;
+            qInput.className = "p-2 border rounded w-full text-sm";
+            qInput.value = currentQuestion.question || "";
     
-      const ptsInput2 = document.createElement("input");
-      ptsInput2.type = "number";
-      ptsInput2.placeholder = "Pts 2";
-      ptsInput2.className = "p-1 border rounded w-1/5 text-sm";
-      ptsInput2.value = currentQuestion.contestantPoints2 || "";
-
-      answerRow2.appendChild(aInput2);
-      answerRow2.appendChild(ptsInput2);
+            const answerRow1 = document.createElement("div");
+            answerRow1.className = "flex gap-2 items-center";
     
-      const revealAnswerBtn = document.createElement("button");
-      revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
-      revealAnswerBtn.textContent = `Reveal Answers`;
-  
-      const revealPointsBtn = document.createElement("button");
-      revealPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded text-sm w-full";
-      revealPointsBtn.textContent = `Reveal Points`;
-  
-      leftCol.appendChild(qInput);
-      leftCol.appendChild(answerRow1);
-      leftCol.appendChild(answerRow2);
-      leftCol.appendChild(revealAnswerBtn);
-      leftCol.appendChild(revealPointsBtn);
-  
-      const rightCol = document.createElement("div");
-      rightCol.className = "w-2/3 flex flex-col gap-2";
+            const aInput1 = document.createElement("input");
+            aInput1.type = "text";
+            aInput1.placeholder = "Contestant Answer 1";
+            aInput1.className = "p-1 border rounded w-4/5 text-sm contestant-answer-1";
+            aInput1.value = currentQuestion.contestantAnswer1 || "";
     
-      const topAnswersWrap = document.createElement("div");
-      topAnswersWrap.className = "flex flex-wrap gap-2 w-full";
-
-        for (let j = 0; j < 5; j++) {
-          const ansWrap = document.createElement("div");
-          ansWrap.className = "w-[18%] bg-gray-50 p-2 rounded border flex flex-col gap-1";
-      
-          const topAnswer = currentQuestion.topAnswers?.[j] || {};
-      
-          const ansInput = document.createElement("input");
-          ansInput.type = "text";
-          ansInput.placeholder = `Top Answer ${j + 1}`;
-          ansInput.className = "p-1 border rounded text-sm";
-          ansInput.value = topAnswer.text || "";
-      
-          const ptsInput = document.createElement("input");
-          ptsInput.type = "number";
-          ptsInput.placeholder = "Pts";
-          ptsInput.className = "p-1 border rounded text-sm";
-          ptsInput.value = topAnswer.points || "";
-      
-          ansWrap.appendChild(ansInput);
-          ansWrap.appendChild(ptsInput);
-          topAnswersWrap.appendChild(ansWrap);
+            const ptsInput1 = document.createElement("input");
+            ptsInput1.type = "number";
+            ptsInput1.placeholder = "Pts 1";
+            ptsInput1.className = "p-1 border rounded w-1/5 text-sm contestant-points-1";
+            ptsInput1.value = currentQuestion.contestantPoints1 || "";
+    
+            answerRow1.appendChild(aInput1);
+            answerRow1.appendChild(ptsInput1);
+    
+            const answerRow2 = document.createElement("div");
+            answerRow2.className = "flex gap-2 items-center";
+    
+            const aInput2 = document.createElement("input");
+            aInput2.type = "text";
+            aInput2.placeholder = "Contestant Answer 2";
+            aInput2.className = "p-1 border rounded w-4/5 text-sm contestant-answer-2";
+            aInput2.value = currentQuestion.contestantAnswer2 || "";
+    
+            const ptsInput2 = document.createElement("input");
+            ptsInput2.type = "number";
+            ptsInput2.placeholder = "Pts 2";
+            ptsInput2.className = "p-1 border rounded w-1/5 text-sm contestant-points-2";
+            ptsInput2.value = currentQuestion.contestantPoints2 || "";
+    
+            answerRow2.appendChild(aInput2);
+            answerRow2.appendChild(ptsInput2);
+    
+            // Buttons to reveal contestant answers/points (for display logic)
+            const revealContestantAnswersBtn = document.createElement("button");
+            revealContestantAnswersBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
+            revealContestantAnswersBtn.textContent = `Reveal Contestant Answers`;
+            revealContestantAnswersBtn.onclick = () => revealContestantAnswers(currentFastMoneyRoundIndex, i);
+    
+            const revealContestantPointsBtn = document.createElement("button");
+            revealContestantPointsBtn.className = "bg-yellow-600 text-white px-2 py-1 rounded text-sm w-full";
+            revealContestantPointsBtn.textContent = `Reveal Contestant Points`;
+            revealContestantPointsBtn.onclick = () => revealContestantPoints(currentFastMoneyRoundIndex, i);
+    
+            leftCol.appendChild(qInput);
+            leftCol.appendChild(answerRow1);
+            leftCol.appendChild(answerRow2);
+            leftCol.appendChild(revealContestantAnswersBtn);
+            leftCol.appendChild(revealContestantPointsBtn);
+    
+            const rightCol = document.createElement("div");
+            rightCol.className = "w-2/3 flex flex-col gap-2";
+    
+            const topAnswersWrap = document.createElement("div");
+            topAnswersWrap.className = "flex flex-wrap gap-2 w-full";
+    
+            for (let j = 0; j < 5; j++) {
+                const ansWrap = document.createElement("div");
+                ansWrap.className = "w-[18%] bg-gray-50 p-2 rounded border flex flex-col gap-1";
+    
+                const topAnswer = currentQuestion.topAnswers?.[j] || {};
+    
+                const ansInput = document.createElement("input");
+                ansInput.type = "text";
+                ansInput.placeholder = `Top Answer ${j + 1}`;
+                ansInput.className = "p-1 border rounded text-sm top-answer-input";
+                ansInput.value = topAnswer.text || "";
+    
+                const ptsInput = document.createElement("input");
+                ptsInput.type = "number";
+                ptsInput.placeholder = "Pts";
+                ptsInput.className = "p-1 border rounded text-sm top-answer-points";
+                ptsInput.value = topAnswer.points || "";
+    
+                ansWrap.appendChild(ansInput);
+                ansWrap.appendChild(ptsInput);
+                topAnswersWrap.appendChild(ansWrap);
+            }
+    
+            const revealTopAnswersBtn = document.createElement("button");
+            revealTopAnswersBtn.className = "bg-yellow-700 text-white px-2 py-1 rounded text-sm w-full";
+            revealTopAnswersBtn.textContent = "Reveal Top Answers & Points";
+            revealTopAnswersBtn.onclick = () => revealAllTopFastMoneyAnswers(currentFastMoneyRoundIndex, i); // Reveals all top answers for this question
+    
+            rightCol.appendChild(topAnswersWrap);
+            rightCol.appendChild(revealTopAnswersBtn);
+    
+            row.appendChild(leftCol);
+            row.appendChild(rightCol);
+            content.appendChild(row);
         }
-
-        const revealTopBtn = document.createElement("button");
-        revealTopBtn.className = "bg-yellow-700 text-white px-2 py-1 rounded text-sm w-full";
-        revealTopBtn.textContent = "Reveal Top Answers";
-
-        rightCol.appendChild(topAnswersWrap);
-        rightCol.appendChild(revealTopBtn);
-
-        row.appendChild(leftCol);
-        row.appendChild(rightCol);
-        content.appendChild(row);
-      }
-
-      container.appendChild(div);
-      fastMoneyCount++;
+    
+        container.appendChild(div);
+        fastMoneyCount++;
+        updateFastMoneyLabels();
     };
+    
+    // Function to render saved Fast Money rounds on load
+    function renderFastMoneyRounds(fastMoneyRounds = []) {
+        const container = document.getElementById("fastMoneyContainer");
+        container.innerHTML = ""; // Clear existing
+        fastMoneyCount = 0; // Reset count
+    
+        fastMoneyRounds.forEach(round => {
+            window.addFastMoneyRound(round);
+        });
+    }
+    
     
     // Update round labels after adding/removing rounds
     function updateRoundLabels() {
-      const roundDivs = document.querySelectorAll("#roundsContainer > div");
-      roundDivs.forEach((div, i) => {
-        const h2 = div.querySelector("h2");
-        if (h2) h2.textContent = `Round ${i + 1}`;
-      });
-      roundCount = roundDivs.length;
+        const roundDivs = document.querySelectorAll("#roundsContainer > div");
+        roundDivs.forEach((div, i) => {
+            const h2 = div.querySelector("h2");
+            if (h2) h2.textContent = `Round ${i + 1}`;
+            // Also update the reveal button callbacks to reflect new indices
+            div.querySelectorAll(".revealBtn").forEach((btn, answerIndex) => {
+                btn.onclick = () => revealAnswer(i, answerIndex);
+            });
+        });
+        roundCount = roundDivs.length;
     }
-
-    // Update fast money round labels
+    
+    // Update fast money round labels and button callbacks
     function updateFastMoneyLabels() {
-      const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
-      fmDivs.forEach((div, i) => {
-        const h3 = div.querySelector("h3");
-        if (h3) h3.textContent = `Fast Money Round ${i + 1}`;
-      });
-      fastMoneyCount = fmDivs.length;
+        const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
+        fmDivs.forEach((div, i) => {
+            const h3 = div.querySelector("h3");
+            if (h3) h3.textContent = `Fast Money Round ${i + 1}`;
+    
+            // Update reveal button callbacks for fast money questions
+            div.querySelectorAll(".fast-money-question-row").forEach((row, qIndex) => {
+                row.querySelector(".revealContestantAnswersBtn").onclick = () => revealContestantAnswers(i, qIndex);
+                row.querySelector(".revealContestantPointsBtn").onclick = () => revealContestantPoints(i, qIndex);
+                row.querySelector(".revealTopAnswersBtn").onclick = () => revealAllTopFastMoneyAnswers(i, qIndex);
+            });
+        });
+        fastMoneyCount = fmDivs.length;
     }
-
+    
+    
     // --- Reveal normal round answer ---
     function revealAnswer(roundIndex, answerIndex) {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        if (!data.rounds?.[roundIndex]) return;
-        if (!data.rounds[roundIndex].revealed) data.rounds[roundIndex].revealed = [];
-        data.rounds[roundIndex].revealed[answerIndex] = true;
-        set(gameRef, data);
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            // Ensure the rounds and specific round exist
+            if (!data.rounds?.[roundIndex]) {
+                console.warn(`Attempted to reveal answer for non-existent round ${roundIndex}`);
+                return;
+            }
+            // Initialize revealed array if it doesn't exist
+            if (!data.rounds[roundIndex].revealed) {
+                data.rounds[roundIndex].revealed = Array(data.rounds[roundIndex].answers.length).fill(false);
+            }
+            // Only update if not already revealed
+            if (!data.rounds[roundIndex].revealed[answerIndex]) {
+                data.rounds[roundIndex].revealed[answerIndex] = true;
+                set(gameRef, data)
+                    .then(() => console.log(`Revealed answer ${answerIndex} in round ${roundIndex}`))
+                    .catch(err => console.error("Error revealing answer:", err));
+            }
+        }).catch(error => {
+            console.error("Error fetching game data for revealAnswer:", error);
+        });
     }
-
-    // --- Reveal fast money answer ---
-    function revealFastMoneyAnswer(fmIndex, answerIndex) {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        if (!data.fastMoneyRounds?.[fmIndex]?.topAnswers?.[answerIndex]) return;
-        if (!data.fastMoneyRounds[fmIndex].topAnswers[answerIndex].revealedAnswer) {
-          data.fastMoneyRounds[fmIndex].topAnswers[answerIndex].revealedAnswer = true;
-          set(gameRef, data);
-        }
-      });
+    
+    // --- Reveal contestant answers for a Fast Money question ---
+    function revealContestantAnswers(fmRoundIndex, questionIndex) {
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const fmRound = data.fastMoneyRounds?.[fmRoundIndex];
+            if (!fmRound?.questions?.[questionIndex]) {
+                console.warn(`Attempted to reveal contestant answers for non-existent Fast Money question ${questionIndex} in round ${fmRoundIndex}`);
+                return;
+            }
+            // Set flags to reveal contestant answers (if not already revealed)
+            if (!fmRound.questions[questionIndex].revealedContestantAnswer1) {
+                fmRound.questions[questionIndex].revealedContestantAnswer1 = true;
+            }
+            if (!fmRound.questions[questionIndex].revealedContestantAnswer2) {
+                fmRound.questions[questionIndex].revealedContestantAnswer2 = true;
+            }
+            set(gameRef, data);
+        }).catch(error => {
+            console.error("Error revealing Fast Money contestant answers:", error);
+        });
     }
-
-    // --- Reveal fast money points ---
-    function revealFastMoneyPoints(fmIndex, answerIndex) {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        if (!data.fastMoneyRounds?.[fmIndex]?.topAnswers?.[answerIndex]) return;
-        if (!data.fastMoneyRounds[fmIndex].topAnswers[answerIndex].revealedPoints) {
-          data.fastMoneyRounds[fmIndex].topAnswers[answerIndex].revealedPoints = true;
-          set(gameRef, data);
-        }
-      });
+    
+    // --- Reveal contestant points for a Fast Money question ---
+    function revealContestantPoints(fmRoundIndex, questionIndex) {
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const fmRound = data.fastMoneyRounds?.[fmRoundIndex];
+            if (!fmRound?.questions?.[questionIndex]) {
+                console.warn(`Attempted to reveal contestant points for non-existent Fast Money question ${questionIndex} in round ${fmRoundIndex}`);
+                return;
+            }
+            // Set flags to reveal contestant points (if not already revealed)
+            if (!fmRound.questions[questionIndex].revealedContestantPoints1) {
+                fmRound.questions[questionIndex].revealedContestantPoints1 = true;
+            }
+            if (!fmRound.questions[questionIndex].revealedContestantPoints2) {
+                fmRound.questions[questionIndex].revealedContestantPoints2 = true;
+            }
+            set(gameRef, data);
+        }).catch(error => {
+            console.error("Error revealing Fast Money contestant points:", error);
+        });
     }
-
+    
+    // --- Reveal all top answers and their points for a Fast Money question ---
+    function revealAllTopFastMoneyAnswers(fmRoundIndex, questionIndex) {
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const fmRound = data.fastMoneyRounds?.[fmRoundIndex];
+            if (!fmRound?.questions?.[questionIndex]) {
+                console.warn(`Attempted to reveal top answers for non-existent Fast Money question ${questionIndex} in round ${fmRoundIndex}`);
+                return;
+            }
+            // Iterate through top answers and set both revealedAnswer and revealedPoints to true
+            fmRound.questions[questionIndex].topAnswers.forEach(answer => {
+                answer.revealedAnswer = true;
+                answer.revealedPoints = true;
+            });
+            set(gameRef, data);
+        }).catch(error => {
+            console.error("Error revealing all top Fast Money answers:", error);
+        });
+    }
+    
+    
     // --- Add strike ---
     window.addStrike = function () {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        const round = data.rounds?.[data.currentRoundIndex];
-        if (!round) return;
-        round.strikes = Math.min((round.strikes || 0) + 1, 3);
-        data.rounds[data.currentRoundIndex] = round;
-        set(gameRef, data);
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const currentRoundIndex = data.currentRoundIndex ?? 0; // Default to 0 if not set
+            const round = data.rounds?.[currentRoundIndex];
+            if (!round) {
+                console.warn("No current round found to add strike.");
+                return;
+            }
+            round.strikes = Math.min((round.strikes || 0) + 1, 3);
+            // Ensure the rounds array and specific round are updated correctly
+            if (data.rounds) {
+                data.rounds[currentRoundIndex] = round;
+            } else {
+                data.rounds = [round]; // Should not happen if currentRoundIndex is valid
+            }
+            set(gameRef, data)
+                .then(() => console.log("Strike added. Current strikes:", round.strikes))
+                .catch(err => console.error("Error adding strike:", err));
+        }).catch(error => {
+            console.error("Error fetching game data for addStrike:", error);
+        });
     };
-
+    
     // --- Reset strikes ---
     window.resetStrikes = function () {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        if (data.rounds?.[data.currentRoundIndex]) {
-          data.rounds[data.currentRoundIndex].strikes = 0;
-          set(gameRef, data);
-        }
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const currentRoundIndex = data.currentRoundIndex ?? 0;
+            if (data.rounds?.[currentRoundIndex]) {
+                data.rounds[currentRoundIndex].strikes = 0;
+                set(gameRef, data)
+                    .then(() => console.log("Strikes reset."))
+                    .catch(err => console.error("Error resetting strikes:", err));
+            } else {
+                console.warn("No current round found to reset strikes.");
+            }
+        }).catch(error => {
+            console.error("Error fetching game data for resetStrikes:", error);
+        });
     };
-
+    
     // --- Set team score ---
     window.setScore = function (team) {
-      const inputId = team === "A" ? "scoreAInput" : "scoreBInput";
-      const val = Number(document.getElementById(inputId).value);
-      const scoreKey = team === "A" ? "scoreA" : "scoreB";
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        data[scoreKey] = val;
-        set(gameRef, data);
-      });
+        const inputId = team === "A" ? "scoreAInput" : "scoreBInput";
+        const val = Number(document.getElementById(inputId).value);
+        const scoreKey = team === "A" ? "scoreA" : "scoreB";
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            data[scoreKey] = val;
+            set(gameRef, data)
+                .then(() => console.log(`Team ${team} score set to ${val}`))
+                .catch(err => console.error("Error setting score:", err));
+        }).catch(error => {
+            console.error("Error fetching game data for setScore:", error);
+        });
     };
-
+    
     // --- Reset scores ---
     window.resetScores = function () {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        data.scoreA = 0;
-        data.scoreB = 0;
-        set(gameRef, data);
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            data.scoreA = 0;
+            data.scoreB = 0;
+            set(gameRef, data)
+                .then(() => console.log("Scores reset."))
+                .catch(err => console.error("Error resetting scores:", err));
+        }).catch(error => {
+            console.error("Error fetching game data for resetScores:", error);
+        });
     };
-
+    
     // --- Next round ---
     window.nextRound = function () {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val() || {};
-        if (data.currentRoundIndex < (data.rounds?.length ?? 0) - 1) {
-          data.currentRoundIndex++;
-          set(gameRef, data);
-        }
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val() || {};
+            const totalRounds = data.rounds?.length ?? 0;
+            if (data.currentRoundIndex === undefined) {
+                data.currentRoundIndex = 0; // Initialize if not set
+            } else if (data.currentRoundIndex < totalRounds - 1) {
+                data.currentRoundIndex++;
+            } else if (data.currentRoundIndex === totalRounds - 1 && (data.fastMoneyRounds?.length ?? 0) > 0) {
+                // Transition to Fast Money if available
+                data.currentRoundIndex = "fastMoney"; // Use a string to indicate Fast Money mode
+                data.currentFastMoneyRoundIndex = 0;
+                data.currentFastMoneyQuestionIndex = 0; // Start at the first question
+            } else {
+                console.log("No more rounds or Fast Money rounds to advance to.");
+                return; // No more rounds to advance
+            }
+            set(gameRef, data)
+                .then(() => console.log(`Advanced to next round: ${data.currentRoundIndex}`))
+                .catch(err => console.error("Error advancing round:", err));
+        }).catch(error => {
+            console.error("Error fetching game data for nextRound:", error);
+        });
     };
-
+    
+    
     // --- Start game ---
     window.startGame = function () {
-      // Collect normal rounds data
-      const rounds = [];
-      const roundDivs = document.querySelectorAll("#roundsContainer > div");
-      roundDivs.forEach((div, roundIndex) => {
-        const question = div.querySelector(".questionInput").value;
-        const answerEls = div.querySelectorAll(".answerText");
-        const pointEls = div.querySelectorAll(".answerPoints");
-        const answers = [];
-
-        answerEls.forEach((input, i) => {
-          const text = input.value.trim();
-          const points = parseInt(pointEls[i].value, 10);
-          if (text && !isNaN(points)) {
-            answers.push({ text, points });
-          }
+        // Collect normal rounds data
+        const rounds = [];
+        const roundDivs = document.querySelectorAll("#roundsContainer > div");
+        roundDivs.forEach((div) => {
+            const question = div.querySelector(".questionInput").value;
+            const answerEls = div.querySelectorAll(".answerText");
+            const pointEls = div.querySelectorAll(".answerPoints");
+            const answers = [];
+    
+            answerEls.forEach((input, i) => {
+                const text = input.value.trim();
+                const points = parseInt(pointEls[i].value, 10);
+                if (text && !isNaN(points)) {
+                    answers.push({ text, points });
+                }
+            });
+    
+            // Initialize revealed answers and strikes for the round
+            rounds.push({ question, answers, revealed: Array(answers.length).fill(false), strikes: 0 });
         });
-
-        rounds.push({ question, answers, revealed: Array(answers.length).fill(false), strikes: 0 });
-      });
-
-      // Collect fast money rounds data
-      const fastMoneyRounds = [];
-      const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
-      fmDivs.forEach(div => {
-        const contestantAnswers = Array.from(div.querySelectorAll("#contestantAnswersCol > input")).map(input => input.value.trim());
-        const topAnswerDivs = div.querySelectorAll("#topAnswersCol > div");
-        const topAnswers = Array.from(topAnswerDivs).map(topDiv => {
-          const inputs = topDiv.querySelectorAll("input");
-          return {
-            text: inputs[0].value.trim(),
-            points: parseInt(inputs[1].value, 10) || 0,
-            revealedAnswer: false,
-            revealedPoints: false
-          };
+    
+        // Collect fast money rounds data
+        const fastMoneyRounds = [];
+        const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
+        fmDivs.forEach(div => {
+            const questionRows = div.querySelectorAll(".fast-money-question-row");
+            const questions = [];
+    
+            questionRows.forEach(row => {
+                const question = row.querySelector("input[placeholder^='Question']")?.value || "";
+    
+                const contestantAnswer1 = row.querySelector(".contestant-answer-1")?.value || "";
+                const contestantPoints1 = parseInt(row.querySelector(".contestant-points-1")?.value || "0", 10);
+    
+                const contestantAnswer2 = row.querySelector(".contestant-answer-2")?.value || "";
+                const contestantPoints2 = parseInt(row.querySelector(".contestant-points-2")?.value || "0", 10);
+    
+                const topAnswers = Array.from(row.querySelectorAll(".top-answer-input")).map((input, idx) => {
+                    const pointsInput = row.querySelectorAll(".top-answer-points")[idx];
+                    return {
+                        text: input.value,
+                        points: parseInt(pointsInput?.value || "0", 10),
+                        revealedAnswer: false, // Default state
+                        revealedPoints: false  // Default state
+                    };
+                });
+    
+                questions.push({
+                    question,
+                    contestantAnswer1,
+                    contestantPoints1,
+                    revealedContestantAnswer1: false,
+                    revealedContestantPoints1: false,
+                    contestantAnswer2,
+                    contestantPoints2,
+                    revealedContestantAnswer2: false,
+                    revealedContestantPoints2: false,
+                    topAnswers
+                });
+            });
+            fastMoneyRounds.push({ questions });
         });
-        fastMoneyRounds.push({ contestantAnswers, topAnswers });
-      });
-
-      const gameRef = ref(db, "game");
-      set(gameRef, {
-        rounds,
-        fastMoneyRounds,
-        currentRoundIndex: 0,
-        scoreA: 0,
-        scoreB: 0
-      });
+    
+        const gameRef = ref(db, "game");
+        set(gameRef, {
+            rounds,
+            fastMoneyRounds,
+            currentRoundIndex: 0, // Start with the first normal round
+            scoreA: 0,
+            scoreB: 0,
+            // New Fast Money state variables
+            currentFastMoneyRoundIndex: 0,
+            currentFastMoneyQuestionIndex: 0,
+            fastMoneyTimerRunning: false,
+            fastMoneyTimeRemaining: 30, // Example: 30 seconds for the timer
+            fastMoneyTotalPoints: 0 // To accumulate points in Fast Money
+        })
+            .then(() => {
+                console.log("Game started and data sent to Firebase!");
+                alert("🚀 Game Started! Data sent to display.");
+            })
+            .catch(error => {
+                console.error("Error starting game:", error);
+                alert("❌ Failed to start game.");
+            });
     };
-
+    
     // Load saved data on page load
     window.addEventListener("DOMContentLoaded", () => {
-      const gameRef = ref(db, "game");
-      get(gameRef).then(snapshot => {
-        const data = snapshot.val();
-        if (data?.rounds?.length) renderSavedRounds(data.rounds);
-        if (data?.fastMoneyRounds?.length) renderFastMoneyRounds(data.fastMoneyRounds);
-      });
+        const gameRef = ref(db, "game");
+        get(gameRef).then(snapshot => {
+            const data = snapshot.val();
+            // Load normal rounds
+            if (data?.rounds?.length) {
+                renderSavedRounds(data.rounds);
+            } else {
+                window.addRound(); // Add an empty round if no data found
+            }
+            // Load fast money rounds
+            if (data?.fastMoneyRounds?.length) {
+                renderFastMoneyRounds(data.fastMoneyRounds);
+            } else {
+                window.addFastMoneyRound(); // Add an empty fast money round if no data found
+            }
+        }).catch(error => {
+            console.error("Error loading initial game data:", error);
+            // Fallback to adding empty rounds if loading fails
+            window.addRound();
+            window.addFastMoneyRound();
+        });
     });
   </script>
 </body>
