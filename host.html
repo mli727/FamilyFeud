@@ -213,6 +213,9 @@
       qInput.placeholder = `Question ${i + 1}`;
       qInput.className = "p-2 border rounded w-full text-sm";
       qInput.value = currentQuestion.question || "";
+
+      const answerRow1 = document.createElement("div");
+      answerRow1.className = "flex gap-2 items-center";
     
       const aInput1 = document.createElement("input");
       aInput1.type = "text";
@@ -225,6 +228,12 @@
       ptsInput1.placeholder = "Pts 1";
       ptsInput1.className = "p-1 border rounded w-1/5 text-sm";
       ptsInput1.value = currentQuestion.contestantPoints1 || "";
+
+      answerRow1.appendChild(aInput1);
+      answerRow1.appendChild(ptsInput1);
+
+      const answerRow2 = document.createElement("div");
+      answerRow2.className = "flex gap-2 items-center";
     
       const aInput2 = document.createElement("input");
       aInput2.type = "text";
@@ -237,6 +246,9 @@
       ptsInput2.placeholder = "Pts 2";
       ptsInput2.className = "p-1 border rounded w-1/5 text-sm";
       ptsInput2.value = currentQuestion.contestantPoints2 || "";
+
+      answerRow2.appendChild(aInput2);
+      answerRow2.appendChild(ptsInput2);
     
       const revealAnswerBtn = document.createElement("button");
       revealAnswerBtn.className = "bg-yellow-500 text-white px-2 py-1 rounded text-sm w-full";
