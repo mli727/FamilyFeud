@@ -71,7 +71,6 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">Fast Money Rounds</h2>
                 <div class="flex gap-2">
-                    <button onclick="saveFastMoneyData()" class="bg-indigo-600 text-white px-6 py-3 rounded-lg text-lg font-bold hover:bg-indigo-700">💾 Save Fast Money Data</button>
                     <button onclick="addFastMoneyRound()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">➕ Add Fast Money Round</button>
                 </div>
             </div>
@@ -171,76 +170,6 @@
         }
 
         // --- Fast Money Data Handling ---
-        // This function will collect all Fast Money data from the host panel
-        // and save it to Firebase under the 'game' object.
-        window.saveFastMoneyData = function () {
-            if (!currentGameName) {
-                alert("Please load or name a game version before saving Fast Money data.");
-                return;
-            }
-
-            const fastMoneyRounds = [];
-            const fmDivs = document.querySelectorAll("#fastMoneyContainer > div");
-
-            fmDivs.forEach(div => {
-                const questionRows = div.querySelectorAll(".fast-money-question-row");
-                const questions = [];
-
-                questionRows.forEach(row => {
-                    const question = row.querySelector("input[placeholder^='Question']")?.value || "";
-
-                    const contestantAnswer1 = row.querySelector(".contestant-answer-1")?.value || "";
-                    const contestantPoints1 = parseInt(row.querySelector(".contestant-points-1")?.value || "0", 10);
-
-                    const contestantAnswer2 = row.querySelector(".contestant-answer-2")?.value || "";
-                    const contestantPoints2 = parseInt(row.querySelector(".contestant-points-2")?.value || "0", 10);
-
-                    const topAnswers = Array.from(row.querySelectorAll(".top-answer-input")).map((input, idx) => {
-                        const pointsInput = row.querySelectorAll(".top-answer-points")[idx];
-                        return {
-                            text: input.value,
-                            points: parseInt(pointsInput?.value || "0", 10),
-                            revealedAnswer: false, // Default to not revealed
-                            revealedPoints: false  // Default to not revealed
-                        };
-                    });
-
-                    questions.push({
-                        question,
-                        contestantAnswer1,
-                        contestantPoints1,
-                        revealedContestantAnswer1: false, // Initialize as not revealed
-                        revealedContestantPoints1: false, // Initialize as not revealed
-                        contestantAnswer2,
-                        contestantPoints2,
-                        revealedContestantAnswer2: false, // Initialize as not revealed
-                        revealedContestantPoints2: false, // Initialize as not revealed
-                        topAnswers
-                    });
-                });
-
-                fastMoneyRounds.push({ questions });
-            });
-
-            // Update ONLY the fastMoneyRounds part of the currently active game object in Firebase
-            const gameRef = ref(db, `games/${currentGameName}`); // Use currentGameName
-            get(gameRef).then(snapshot => {
-                const currentGameState = snapshot.val() || {};
-                currentGameState.fastMoneyRounds = fastMoneyRounds; // Assign collected data
-                set(gameRef, currentGameState)
-                    .then(() => {
-                        alert(`✅ Fast Money data saved for game: ${currentGameName}!`);
-                        console.log("%c✅ Fast Money data saved!", "color: green; font-weight: bold;");
-                    })
-                    .catch(err => {
-                        console.error("Error saving Fast Money data:", err);
-                        alert("❌ Failed to save Fast Money data.");
-                    });
-            }).catch(error => {
-                console.error("Error fetching game data before saving Fast Money:", error);
-            });
-        };
-
 
         // Function to load and render fast money data from Firebase
         function loadFastMoneyData(fastMoneyRounds = []) { // Now accepts fastMoneyRounds as an argument
