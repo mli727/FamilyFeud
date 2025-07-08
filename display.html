@@ -148,6 +148,7 @@
     <audio id="introSound" src="intro.mp3" preload="auto"></audio>
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
     <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
+    <audio id="answerSound" src="answer.mp3" preload="auto"></audio>
 
 
     <script type="module">
@@ -188,6 +189,7 @@
         const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
+        const answerSound = document.getElementById('answerSound');
 
         // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
@@ -213,6 +215,11 @@
             buzzSound.currentTime = 0;
             buzzSound.play().catch(e => console.warn("Buzz sound play failed:", e));
         }
+
+        function playAnswerSound() {
+            answerSound.currentTime = 0;
+            answerSound.play().catch(e => console.warn("Answer sound play failed:", e));
+        }  
 
         // --- Helper: Normal Round Answer Box Creation ---
         function createAnswerBox(number, answer, revealed, points) {
