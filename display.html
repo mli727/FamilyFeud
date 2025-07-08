@@ -7,14 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         /* Custom styles for the fast money timer, etc. */
-        .fast-money-timer {
-            font-size: 8rem; /* Large font for timer */
-            font-weight: bold;
-            color: #FFD700; /* Gold color */
-            text-shadow: 4px 4px 6px rgba(0,0,0,0.7);
-            min-width: 250px;
-            text-align: center;
-        }
+        /* .fast-money-timer styles removed as per user request */
         .fast-money-score {
             font-size: 4rem;
             font-weight: bold;
@@ -65,12 +58,36 @@
             /* --- IMPORTANT: Ensure text within answer box stays in one line --- */
             white-space: nowrap; /* Prevent text wrapping inside the revealed answer */
         }
-    
+       
         /* Add this rule to prevent long answers from wrapping and increasing box height */
         .answer-box-base .text-black {
             white-space: nowrap; /* Keep answer text on a single line */
             overflow: hidden; /* Hide any overflow if text is too long */
             text-overflow: ellipsis; /* Add "..." for truncated text */
+        }
+
+        /* New Fast Money specific styles for team scores */
+        .fast-money-score-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ADD8E6; /* Light Blue */
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
+            display: flex; /* Use flexbox for horizontal alignment */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            gap: 40px; /* Space between the two score displays */
+            margin-top: 20px; /* Add some margin above */
+            margin-bottom: 20px; /* Margin below for total score */
+        }
+        .fast-money-score-item {
+            text-align: center;
+        }
+        .fast-money-score-item h2 {
+            font-size: 1.5rem; /* Smaller heading for "Team A / Team B" */
+            font-weight: bold;
+            color: #ADD8E6; /* Light Blue */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -110,13 +127,21 @@
         <div id="fastMoneyUI" class="hidden flex-col items-center w-full">
             <h2 class="text-5xl font-bold mb-8 text-yellow-400">⚡ Fast Money! ⚡</h2>
 
-            <div class="flex justify-center items-center gap-10 mb-8 w-full">
-                <div class="fast-money-timer" id="fastMoneyTimer">00</div>
-                <div class="fast-money-score">Total: <span id="fastMoneyTotalScore">0</span></div>
-            </div>
-
             <div id="fastMoneyAnswersContainer" class="grid grid-cols-2 gap-4 w-full">
                 </div>
+
+            <div class="fast-money-score-display">
+                <div class="fast-money-score-item">
+                    <h2>Team A</h2>
+                    <div id="fastMoneyScoreA">0</div>
+                </div>
+                <div class="fast-money-score-item">
+                    <h2>Team B</h2>
+                    <div id="fastMoneyScoreB">0</div>
+                </div>
+            </div>
+
+            <div class="fast-money-score">Total: <span id="fastMoneyTotalScore">0</span></div>
         </div>
     </div>
 
@@ -147,62 +172,64 @@
         const roundNumberEl = document.getElementById('roundNumber');
         const questionEl = document.getElementById('question');
         const answersContainer = document.getElementById('answers');
-        const scoreAEl = document.getElementById('scoreA');
-        const scoreBEl = document.getElementById('scoreB');
+        const scoreAEl = document.getElementById('scoreA'); // Used for Normal Round Team A score
+        const scoreBEl = document.getElementById('scoreB'); // Used for Normal Round Team B score
         const normalRoundUI = document.getElementById('normalRoundUI');
         const fastMoneyUI = document.getElementById('fastMoneyUI');
         const fastMoneyAnswersContainer = document.getElementById('fastMoneyAnswersContainer');
-        const fastMoneyTimerEl = document.getElementById('fastMoneyTimer');
-        const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore');
+        // Removed fastMoneyTimerEl as it's no longer needed in HTML or JS
+        const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore'); // Total FM score
+        // New: Fast Money Team Scores
+        const fastMoneyScoreAEl = document.getElementById('fastMoneyScoreA');
+        const fastMoneyScoreBEl = document.getElementById('fastMoneyScoreB');
+
 
         // Audio elements
         const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
 
-        // New: Audio Unlock Overlay elements
+        // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
         const startButton = document.getElementById('startButton');
 
-        let activeGameRef = null; // Will store the ref to the currently active game data
-        let previousRevealedState = []; // To track changes for ding sound
-        let previousStrikes = 0; // To track changes for buzz sound
-        let currentActiveGameName = null; // To store the name of the currently active game
+        let activeGameRef = null;
+        let previousRevealedState = [];
+        let previousStrikes = 0;
+        let currentActiveGameName = null;
 
         // --- Audio Functions ---
         function playIntro() {
-            introSound.currentTime = 0; // Rewind to start
+            introSound.currentTime = 0;
             introSound.play().catch(e => console.warn("Intro sound play failed:", e));
         }
         
         function playDing() {
-            dingSound.currentTime = 0; // Rewind to start
+            dingSound.currentTime = 0;
             dingSound.play().catch(e => console.warn("Ding sound play failed:", e));
         }
 
         function playBuzz() {
-            buzzSound.currentTime = 0; // Rewind to start
+            buzzSound.currentTime = 0;
             buzzSound.play().catch(e => console.warn("Buzz sound play failed:", e));
         }
 
         // --- Helper: Normal Round Answer Box Creation ---
         function createAnswerBox(number, answer, revealed, points) {
             const container = document.createElement('div');
-            // Use the base class for consistent styling
-            container.className = 'answer-box-base';
+            container.className = 'answer-box-base'; // Uses CSS for fixed height
 
             const leftDiv = document.createElement('div');
-            leftDiv.className = 'flex items-center flex-1'; // flex-1 to allow answer text to grow
+            leftDiv.className = 'flex items-center flex-1';
 
             if (revealed) {
                 const answerText = document.createElement('span');
-                answerText.className = 'text-black text-xl font-semibold truncate';
+                answerText.className = 'text-black text-xl font-semibold truncate'; // truncate handled by CSS
                 answerText.textContent = answer;
                 leftDiv.appendChild(answerText);
             } else {
                 const circle = document.createElement('div');
-                // Use the custom class for centering
-                circle.className = 'answer-number-circle';
+                circle.className = 'answer-number-circle'; // Uses CSS for centering
                 circle.textContent = number;
                 leftDiv.appendChild(circle);
             }
@@ -212,19 +239,19 @@
             pointsDiv.className = 'bg-yellow-600 text-black font-bold text-xl px-4 py-1 rounded ml-4 min-w-[70px] text-center select-none';
 
             if (revealed) {
-                pointsDiv.textContent = points + ''; // Just the number for points
+                pointsDiv.textContent = points + '';
             } else {
-                pointsDiv.textContent = ''; // Blank if not revealed
+                pointsDiv.textContent = '';
             }
             container.appendChild(pointsDiv);
 
             return container;
         }
 
-        // --- Helper: Fast Money Answer Box Creation (No changes here for this request) ---
+        // --- Helper: Fast Money Answer Box Creation ---
         function createFastMoneyAnswerBox(questionData, answerIndex) {
             const answer = questionData.topAnswers[answerIndex];
-            if (!answer) return null; // Should not happen if data is structured correctly
+            if (!answer) return null;
 
             const container = document.createElement('div');
             container.className = 'flex flex-col bg-blue-700 p-4 rounded-lg shadow-lg';
@@ -236,7 +263,7 @@
 
             // Contestant Answers and Points
             const contestantAnswersDiv = document.createElement('div');
-            contestantAnswersDiv.className = 'mb-4'; // Margin bottom for separation
+            contestantAnswersDiv.className = 'mb-4';
 
             const contestant1Div = document.createElement('div');
             contestant1Div.className = 'flex justify-between items-center bg-blue-800 p-2 rounded-md mb-2';
@@ -265,7 +292,7 @@
                 topAnsRow.className = 'flex justify-between items-center bg-yellow-400 p-2 rounded-md';
                 topAnsRow.innerHTML = `
                     <span class="text-black font-semibold">${topAns.revealedAnswer ? topAns.text : '????'}</span>
-                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded">${topAns.revealedPoints ? topAns.points : '--'}'}</span>
+                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded">${topAns.revealedPoints ? topAns.points : '--'}</span>
                 `;
                 topAnswersDiv.appendChild(topAnsRow);
             });
@@ -278,12 +305,11 @@
         function updateDisplay(data) {
             const currentRoundIndex = data.currentRoundIndex;
 
-            // Determine which UI to show
             if (currentRoundIndex === "fastMoney") {
                 normalRoundUI.classList.add('hidden');
-                normalRoundUI.classList.remove('flex'); // Ensure display flex is removed
+                normalRoundUI.classList.remove('flex');
                 fastMoneyUI.classList.remove('hidden');
-                fastMoneyUI.classList.add('flex'); // Ensure display flex is added
+                fastMoneyUI.classList.add('flex');
                 displayFastMoneyRound(data);
             } else if (currentRoundIndex === "gameOver") {
                  normalRoundUI.classList.remove('hidden');
@@ -292,8 +318,7 @@
                  fastMoneyUI.classList.remove('flex');
                  roundNumberEl.textContent = "Game Over!";
                  questionEl.textContent = "Thank you for playing!";
-                 answersContainer.innerHTML = ''; // Clear answers
-                 // Optionally show final scores more prominently
+                 answersContainer.innerHTML = '';
             }
             else {
                 normalRoundUI.classList.remove('hidden');
@@ -324,7 +349,7 @@
             const col2 = document.createElement('div');
             col2.className = 'flex flex-col flex-1 gap-2';
 
-            let currentRevealedState = []; // To capture the state for this render
+            let currentRevealedState = [];
 
             for (let i = 0; i < maxSlots; i++) {
                 const answerObj = currentRound.answers[i];
@@ -335,10 +360,9 @@
 
                 if (!answerObj) {
                     const blankBox = document.createElement('div');
-                    // Use the custom blank box class
-                    blankBox.className = 'answer-box-blank';
+                    blankBox.className = 'answer-box-blank'; // Uses CSS for fixed height
                     col.appendChild(blankBox);
-                    currentRevealedState.push(false); // Mark as not revealed for comparison
+                    currentRevealedState.push(false);
                     continue;
                 }
 
@@ -354,31 +378,21 @@
             scoreAEl.textContent = data.scoreA || 0;
             scoreBEl.textContent = data.scoreB || 0;
 
-            // --- Sound Logic for Revealed Answers ---
-            // Only play ding if the game is active (not just starting/loading an empty state)
-            // and if there's an actual change in revelation status.
             if (currentActiveGameName) {
-                let dingPlayedThisUpdate = false;
                 for (let i = 0; i < currentRevealedState.length; i++) {
-                    // Check if current answer is revealed AND it was NOT revealed in the previous state
                     if (currentRevealedState[i] && (previousRevealedState[i] === false || previousRevealedState[i] === undefined)) {
                         playDing();
-                        dingPlayedThisUpdate = true;
-                        // Don't break here if you want multiple dings for multiple reveals at once
-                        // but typically one ding for one interaction
-                        break; // Play ding only for the first newly revealed answer
+                        break;
                     }
                 }
             }
-            previousRevealedState = [...currentRevealedState]; // Update for next comparison
+            previousRevealedState = [...currentRevealedState];
 
-            // --- Sound Logic for Strikes ---
             const currentStrikes = currentRound.strikes || 0;
-            // Only play buzz if current strikes are greater than previous strikes AND the game is active
             if (currentStrikes > previousStrikes && currentActiveGameName) {
                 playBuzz();
             }
-            previousStrikes = currentStrikes; // Update for next comparison
+            previousStrikes = currentStrikes;
 
 
             [1, 2, 3].forEach(n => {
@@ -394,7 +408,6 @@
                 }
             });
 
-            // Update round number display
             if (data.rounds && data.rounds.length > 0) {
                 roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
             } else {
@@ -402,27 +415,28 @@
             }
         }
 
-        // --- Display Fast Money Round Logic (No changes here for this request) ---
+        // --- Modified displayFastMoneyRound function ---
         function displayFastMoneyRound(data) {
             const fastMoneyRounds = Array.isArray(data.fastMoneyRounds) ? data.fastMoneyRounds : [];
             const currentFMRoundIndex = data.currentFastMoneyRoundIndex ?? 0;
-            const currentFMQuestionIndex = data.currentFastMoneyQuestionIndex ?? 0;
-            const fastMoneyTimer = data.fastMoneyTimeRemaining ?? 0;
             const fastMoneyTotalPoints = data.fastMoneyTotalPoints ?? 0;
 
             const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
-            const currentFMQuestion = currentFMRound.questions[currentFMQuestionIndex];
-
 
             roundNumberEl.textContent = `Fast Money Round ${currentFMRoundIndex + 1}`;
-            fastMoneyTimerEl.textContent = fastMoneyTimer.toString().padStart(2, '0');
+            // Removed fastMoneyTimerEl.textContent update here
             fastMoneyTotalScoreEl.textContent = fastMoneyTotalPoints;
 
-            fastMoneyAnswersContainer.innerHTML = ''; // Clear previous questions
+            // Display individual team scores in Fast Money (NEW)
+            fastMoneyScoreAEl.textContent = data.scoreA || 0;
+            fastMoneyScoreBEl.textContent = data.scoreB || 0;
+
+
+            fastMoneyAnswersContainer.innerHTML = '';
 
             if (currentFMRound && currentFMRound.questions && currentFMRound.questions.length > 0) {
                 currentFMRound.questions.forEach((qData, qIndex) => {
-                    const questionBox = createFastMoneyAnswerBox(qData, qIndex); // Pass question data and its index
+                    const questionBox = createFastMoneyAnswerBox(qData, qIndex);
                     if (questionBox) {
                         fastMoneyAnswersContainer.appendChild(questionBox);
                     }
@@ -435,49 +449,39 @@
 
         // --- Initialize Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            // New: Handle initial user click to unlock audio
             startButton.addEventListener('click', () => {
-                // Attempt to play a silent sound or the ding sound once
-                // This is the "user gesture" that unlocks audio
-                introSound.play().then(() => {
-                    audioUnlockOverlay.style.display = 'none'; // Hide the overlay
-                    console.log("Audio unlocked successfully!");
+                // Play the new intro sound when the start button is clicked
+                playIntro().then(() => {
+                    audioUnlockOverlay.style.display = 'none';
+                    console.log("Audio unlocked successfully and intro sound played!");
                 }).catch(e => {
-                    console.error("Failed to play initial sound (browser policy?):", e);
-                    // Fallback: Still hide overlay, but user might need to click again or manually unmute browser
+                    console.error("Failed to play intro sound (browser policy?):", e);
                     audioUnlockOverlay.style.display = 'none';
                     alert("Audio playback may be restricted by your browser. Please ensure the tab is not muted or try clicking again.");
                 });
             }, { once: true }); // Use { once: true } to ensure it only runs once
 
-
-            // 1. Listen for the 'activeGame' path to know which game to display
             onValue(ref(db, 'activeGame'), (activeGameSnapshot) => {
                 const activeGameName = activeGameSnapshot.val();
                 console.log(`Active game changed to: ${activeGameName}`);
 
-                // If the active game has changed, detach old listener and reset states
-                // This prevents ding/buzz from playing immediately on game load/switch
                 if (currentActiveGameName !== activeGameName) {
                     if (activeGameRef) {
-                        off(activeGameRef); // Detach the old listener
+                        off(activeGameRef);
                         activeGameRef = null;
                     }
-                    previousRevealedState = []; // Reset for new game
-                    previousStrikes = 0; // Reset for new game
-                    currentActiveGameName = activeGameName; // Update current active game name
+                    previousRevealedState = [];
+                    previousStrikes = 0;
+                    currentActiveGameName = activeGameName;
                 }
 
-
                 if (activeGameName) {
-                    // 2. If an active game is set, listen to its specific data
                     activeGameRef = ref(db, `games/${activeGameName}`);
                     onValue(activeGameRef, (gameSnapshot) => {
                         const data = gameSnapshot.val();
                         if (data) {
                             updateDisplay(data);
                         } else {
-                            // If game data disappears (e.g., deleted by host), clear display
                             console.warn(`Game data for ${activeGameName} not found.`);
                             roundNumberEl.textContent = "No active game selected.";
                             questionEl.textContent = "Waiting for host to select a game...";
@@ -485,6 +489,9 @@
                             fastMoneyAnswersContainer.innerHTML = '';
                             scoreAEl.textContent = '0';
                             scoreBEl.textContent = '0';
+                            fastMoneyScoreAEl.textContent = '0'; // Reset Fast Money scores too
+                            fastMoneyScoreBEl.textContent = '0'; // Reset Fast Money scores too
+                            fastMoneyTotalScoreEl.textContent = '0'; // Reset Fast Money total too
                             [1, 2, 3].forEach(n => {
                                 document.getElementById(`strike${n}`).classList.remove('opacity-100');
                                 document.getElementById(`strike${n}`).classList.add('opacity-20');
@@ -498,13 +505,15 @@
                         console.error("Error listening to active game data:", error);
                     });
                 } else {
-                    // No active game selected by host
                     roundNumberEl.textContent = "No active game selected.";
                     questionEl.textContent = "Waiting for host to select a game...";
                     answersContainer.innerHTML = '';
                     fastMoneyAnswersContainer.innerHTML = '';
                     scoreAEl.textContent = '0';
                     scoreBEl.textContent = '0';
+                    fastMoneyScoreAEl.textContent = '0'; // Reset Fast Money scores too
+                    fastMoneyScoreBEl.textContent = '0'; // Reset Fast Money scores too
+                    fastMoneyTotalScoreEl.textContent = '0'; // Reset Fast Money total too
                     [1, 2, 3].forEach(n => {
                         document.getElementById(`strike${n}`).classList.remove('opacity-100');
                         document.getElementById(`strike${n}`).classList.add('opacity-20');
