@@ -108,8 +108,9 @@
         </div>
     </div>
 
+    <audio id="introSound" src="intro.mp3" preload="auto"></audio>
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
-    <audio id="buzzSound" src="https://cdn.pixabay.com/audio/2022/03/10/audio_55a1532ee9.mp3" preload="auto"></audio>
+    <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
 
 
     <script type="module">
@@ -143,6 +144,7 @@
         const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore');
 
         // Audio elements
+        const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
 
@@ -156,6 +158,11 @@
         let currentActiveGameName = null; // To store the name of the currently active game
 
         // --- Audio Functions ---
+        function playIntro() {
+            introSound.currentTime = 0; // Rewind to start
+            introSound.play().catch(e => console.warn("Intro sound play failed:", e));
+        }
+        
         function playDing() {
             dingSound.currentTime = 0; // Rewind to start
             dingSound.play().catch(e => console.warn("Ding sound play failed:", e));
@@ -420,7 +427,7 @@
             startButton.addEventListener('click', () => {
                 // Attempt to play a silent sound or the ding sound once
                 // This is the "user gesture" that unlocks audio
-                dingSound.play().then(() => {
+                introSound.play().then(() => {
                     audioUnlockOverlay.style.display = 'none'; // Hide the overlay
                     console.log("Audio unlocked successfully!");
                 }).catch(e => {
