@@ -567,43 +567,86 @@
             const gameRef = ref(db, `games/${currentGameName}`); // Use currentGameName
             get(gameRef).then(snapshot => {
                 const data = snapshot.val() || {};
-                const totalRounds = data.rounds?.length ?? 0;
-
+                const totalNormalRounds = data.rounds?.length ?? 0;
+                const totalFastMoneyRounds = data.fastMoneyRounds?.length ?? 0;
+        
                 // If currently in normal rounds
                 if (typeof data.currentRoundIndex === 'number') {
-                    if (data.currentRoundIndex < totalRounds - 1) {
+                    if (data.currentRoundIndex < totalNormalRounds - 1) {
+                        // Advance to the next normal round
                         data.currentRoundIndex++;
-                    } else if ((data.fastMoneyRounds?.length ?? 0) > 0) {
-                        // Transition to Fast Money if available
+                        // Reset strikes and revealed answers when moving to a new normal round
+                        data.rounds[data.currentRoundIndex] = { 
+                            ...data.rounds[data.currentRoundIndex], // Keep existing data
+                            strikes: 0, 
+                            revealed: Array(data.rounds[data.currentRoundIndex]?.answers?.length ?? 0).fill(false) 
+                        };
+                        console.log(`Advanced to Normal Round ${data.currentRoundIndex + 1}`);
+                    } else if (totalFastMoneyRounds > 0) {
+                        // Transition to Fast Money if available and all normal rounds are done
                         data.currentRoundIndex = "fastMoney"; // Use a string to indicate Fast Money mode
-                        data.currentFastMoneyRoundIndex = 0;
-                        data.currentFastMoneyQuestionIndex = 0; // Start at the first question of the first Fast Money round
+                        data.currentFastMoneyRoundIndex = 0; // Start at the first Fast Money round
+                        data.currentFastMoneyQuestionIndex = 0; // Reset for clarity, though display.html doesn't use it directly
+                        console.log("Transitioned to Fast Money Round 1");
                     } else {
-                        console.log("No more normal rounds or Fast Money rounds to advance to.");
-                        return; // No more rounds to advance
+                        // No more normal rounds or Fast Money rounds
+                        data.currentRoundIndex = "gameOver";
+                        console.log("No more normal rounds or Fast Money rounds to advance to. Game Over.");
                     }
                 } else if (data.currentRoundIndex === "fastMoney") {
                     // Logic for advancing within Fast Money rounds
-                    const currentFMRound = data.fastMoneyRounds?.[data.currentFastMoneyRoundIndex];
-                    if (currentFMRound && data.currentFastMoneyQuestionIndex < (currentFMRound.questions?.length ?? 0) - 1) {
-                        data.currentFastMoneyQuestionIndex++;
-                    } else if (data.currentFastMoneyRoundIndex < (data.fastMoneyRounds?.length ?? 0) - 1) {
-                        data.currentFastMoneyRoundIndex++;
-                        data.currentFastMoneyQuestionIndex = 0; // Reset question index for new Fast Money round
+                    // We want to advance to the NEXT Fast Money round directly, not question by question
+                    if (data.currentFastMoneyRoundIndex < totalFastMoneyRounds - 1) {
+                        data.currentFastMoneyRoundIndex++; // Move to the next Fast Money round
+                        data.currentFastMoneyQuestionIndex = 0; // Reset question index for the new Fast Money round
+                        console.log(`Advanced to Fast Money Round ${data.currentFastMoneyRoundIndex + 1}`);
                     } else {
-                        console.log("All Fast Money rounds completed.");
-                        // Optionally set a game_over state
+                        // All Fast Money rounds completed
+                        console.log("All Fast Money rounds completed. Transitioning to Game Over.");
                         data.currentRoundIndex = "gameOver";
+                        // Optionally clear Fast Money specific indices for a clean state
+                        data.currentFastMoneyRoundIndex = null; 
+                        data.currentFastMoneyQuestionIndex = null;
                     }
-                } else {
-                    // Initial state or game over
-                    data.currentRoundIndex = 0; // Start normal rounds if no state
-                    data.currentFastMoneyRoundIndex = 0; // Reset FM indices
-                    data.currentFastMoneyQuestionIndex = 0;
+                } else if (data.currentRoundIndex === "gameOver") {
+                    // If already in game over, pressing next round could restart or do nothing
+                    // For now, let's assume it does nothing, or you could add restart logic here.
+                    console.log("Game is already over. No further rounds to advance.");
+                    return;
                 }
+                else {
+                    // Initial state (or undefined currentRoundIndex)
+                    if (totalNormalRounds > 0) {
+                         data.currentRoundIndex = 0; // Start at the first normal round
+                         // Initialize strikes and revealed for the first round
+                         data.rounds[0] = { 
+                            ...data.rounds[0], 
+                            strikes: 0, 
+                            revealed: Array(data.rounds[0]?.answers?.length ?? 0).fill(false) 
+                        };
+                         console.log("Starting game at Normal Round 1.");
+                    } else if (totalFastMoneyRounds > 0) {
+                         data.currentRoundIndex = "fastMoney";
+                         data.currentFastMoneyRoundIndex = 0;
+                         data.currentFastMoneyQuestionIndex = 0;
+                         console.log("No normal rounds, starting game at Fast Money Round 1.");
+                    } else {
+                        console.log("No rounds defined for this game. Cannot start.");
+                        alert("No rounds defined for this game. Cannot start.");
+                        return;
+                    }
+                }
+                
+                // Always update the database with the new state
                 set(gameRef, data)
-                    .then(() => console.log(`Advanced to next state: currentRoundIndex=${data.currentRoundIndex}, currentFMRoundIndex=${data.currentFastMoneyRoundIndex}, currentFMQIndex=${data.currentFastMoneyQuestionIndex} for game ${currentGameName}`))
+                    .then(() => {
+                        console.log(`Game state updated: 
+                            currentRoundIndex: ${data.currentRoundIndex}, 
+                            currentFastMoneyRoundIndex: ${data.currentFastMoneyRoundIndex}, 
+                            currentFastMoneyQuestionIndex: ${data.currentFastMoneyQuestionIndex}`);
+                    })
                     .catch(err => console.error("Error advancing round:", err));
+        
             }).catch(error => {
                 console.error("Error fetching game data for nextRound:", error);
             });
