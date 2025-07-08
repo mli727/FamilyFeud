@@ -450,16 +450,19 @@
         // --- Initialize Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             startButton.addEventListener('click', () => {
-                // Play the new intro sound when the start button is clicked
+                // --- FIX IS HERE: Hide the overlay IMMEDIATELY on click ---
+                audioUnlockOverlay.style.display = 'none'; 
+                console.log("User clicked to start. Attempting to play audio...");
+        
                 playIntro().then(() => {
-                    audioUnlockOverlay.style.display = 'none';
-                    console.log("Audio unlocked successfully and intro sound played!");
+                    console.log("Intro sound played successfully!");
                 }).catch(e => {
-                    console.error("Failed to play intro sound (browser policy?):", e);
-                    audioUnlockOverlay.style.display = 'none';
-                    alert("Audio playback may be restricted by your browser. Please ensure the tab is not muted or try clicking again.");
+                    console.error("Failed to play intro sound:", e);
+                    // Optional: You could show a message here if audio is crucial and failed silently.
+                    // For now, the overlay is already gone, which is the main goal.
+                    alert("Audio playback may be restricted by your browser. Please ensure the tab is not muted or try clicking again if sounds don't work.");
                 });
-            }, { once: true }); // Use { once: true } to ensure it only runs once
+            }, { once: true }); // Ensure it only runs once
 
             onValue(ref(db, 'activeGame'), (activeGameSnapshot) => {
                 const activeGameName = activeGameSnapshot.val();
