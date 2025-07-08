@@ -63,6 +63,12 @@
     </style>
 </head>
 <body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8 select-none">
+    <div id="audioUnlockOverlay" class="fixed inset-0 bg-blue-900 bg-opacity-95 flex items-center justify-center z-50">
+        <button id="startButton" class="bg-yellow-500 text-blue-900 text-3xl font-bold px-10 py-5 rounded-lg shadow-xl hover:bg-yellow-400 transform hover:scale-105 transition-transform duration-200">
+            Click to Start Game
+        </button>
+    </div>
+
     <h1 class="text-4xl font-bold mb-2">🎉 Family Feud 🎉</h1>
     <div id="roundNumber" class="text-xl font-semibold mb-4">Waiting for game to start...</div>
 
@@ -139,6 +145,10 @@
         // Audio elements
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
+
+        // New: Audio Unlock Overlay elements
+        const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
+        const startButton = document.getElementById('startButton');
 
         let activeGameRef = null; // Will store the ref to the currently active game data
         let previousRevealedState = []; // To track changes for ding sound
@@ -236,7 +246,7 @@
                 topAnsRow.className = 'flex justify-between items-center bg-yellow-400 p-2 rounded-md';
                 topAnsRow.innerHTML = `
                     <span class="text-black font-semibold">${topAns.revealedAnswer ? topAns.text : '????'}</span>
-                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded">${topAns.revealedPoints ? topAns.points : '--'}</span>
+                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded">${topAns.revealedPoints ? topAns.points : '--'}'}</span>
                 `;
                 topAnswersDiv.appendChild(topAnsRow);
             });
@@ -248,8 +258,6 @@
         // --- Main Update Display Function ---
         function updateDisplay(data) {
             const currentRoundIndex = data.currentRoundIndex;
-            const fastMoneyRoundIndex = data.currentFastMoneyRoundIndex;
-            const fastMoneyQuestionIndex = data.currentFastMoneyQuestionIndex;
 
             // Determine which UI to show
             if (currentRoundIndex === "fastMoney") {
@@ -310,11 +318,6 @@
                     const blankBox = document.createElement('div');
                     // Use the custom blank box class
                     blankBox.className = 'answer-box-blank';
-                    // Optional: Add a placeholder number circle in blank boxes for visual consistency if desired
-                    // const circle = document.createElement('div');
-                    // circle.className = 'answer-number-circle';
-                    // circle.textContent = number;
-                    // blankBox.appendChild(circle);
                     col.appendChild(blankBox);
                     currentRevealedState.push(false); // Mark as not revealed for comparison
                     continue;
@@ -334,12 +337,16 @@
 
             // --- Sound Logic for Revealed Answers ---
             // Only play ding if the game is active (not just starting/loading an empty state)
+            // and if there's an actual change in revelation status.
             if (currentActiveGameName) {
+                let dingPlayedThisUpdate = false;
                 for (let i = 0; i < currentRevealedState.length; i++) {
                     // Check if current answer is revealed AND it was NOT revealed in the previous state
-                    // This prevents dinging when the page first loads or when navigating rounds
                     if (currentRevealedState[i] && (previousRevealedState[i] === false || previousRevealedState[i] === undefined)) {
                         playDing();
+                        dingPlayedThisUpdate = true;
+                        // Don't break here if you want multiple dings for multiple reveals at once
+                        // but typically one ding for one interaction
                         break; // Play ding only for the first newly revealed answer
                     }
                 }
@@ -348,7 +355,7 @@
 
             // --- Sound Logic for Strikes ---
             const currentStrikes = currentRound.strikes || 0;
-            // Only play buzz if current strikes are greater than previous strikes
+            // Only play buzz if current strikes are greater than previous strikes AND the game is active
             if (currentStrikes > previousStrikes && currentActiveGameName) {
                 playBuzz();
             }
@@ -385,7 +392,6 @@
             const fastMoneyTotalPoints = data.fastMoneyTotalPoints ?? 0;
 
             const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
-            // Ensure currentFMQuestion is valid to avoid errors if fastMoneyQuestionIndex is out of bounds
             const currentFMQuestion = currentFMRound.questions[currentFMQuestionIndex];
 
 
@@ -410,12 +416,29 @@
 
         // --- Initialize Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
+            // New: Handle initial user click to unlock audio
+            startButton.addEventListener('click', () => {
+                // Attempt to play a silent sound or the ding sound once
+                // This is the "user gesture" that unlocks audio
+                dingSound.play().then(() => {
+                    audioUnlockOverlay.style.display = 'none'; // Hide the overlay
+                    console.log("Audio unlocked successfully!");
+                }).catch(e => {
+                    console.error("Failed to play initial sound (browser policy?):", e);
+                    // Fallback: Still hide overlay, but user might need to click again or manually unmute browser
+                    audioUnlockOverlay.style.display = 'none';
+                    alert("Audio playback may be restricted by your browser. Please ensure the tab is not muted or try clicking again.");
+                });
+            }, { once: true }); // Use { once: true } to ensure it only runs once
+
+
             // 1. Listen for the 'activeGame' path to know which game to display
             onValue(ref(db, 'activeGame'), (activeGameSnapshot) => {
                 const activeGameName = activeGameSnapshot.val();
                 console.log(`Active game changed to: ${activeGameName}`);
 
                 // If the active game has changed, detach old listener and reset states
+                // This prevents ding/buzz from playing immediately on game load/switch
                 if (currentActiveGameName !== activeGameName) {
                     if (activeGameRef) {
                         off(activeGameRef); // Detach the old listener
