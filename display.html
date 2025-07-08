@@ -468,18 +468,6 @@
                                 playAnswerSound();
                                 soundPlayedForThisUpdate = true; // Prevent further sounds for this update cycle
                             }
-                            // Check for top answer reveals for this question
-                            if (!soundPlayedForThisUpdate && qData.topAnswers && prevQData.topAnswers) {
-                                for (let i = 0; i < qData.topAnswers.length; i++) {
-                                    const currentTopAns = qData.topAnswers[i];
-                                    const prevTopAns = prevQData.topAnswers[i] || {};
-                                    if (currentTopAns.revealedAnswer && !prevTopAns.revealedAnswer) {
-                                        playAnswerSound();
-                                        soundPlayedForThisUpdate = true;
-                                        break; // Found a new reveal, play sound and stop checking this question
-                                    }
-                                }
-                            }
                         }
                     }
                 });
