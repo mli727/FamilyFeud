@@ -8,7 +8,7 @@
     <style>
         /* Custom styles for the fast money timer, etc. */
         /* .fast-money-timer styles removed as per user request */
-        .fast-money-score {
+        .fast-money-score { /* This class is now effectively unused or can be repurposed if needed elsewhere */
             font-size: 4rem;
             font-weight: bold;
             color: #ADD8E6; /* Light Blue */
@@ -127,9 +127,6 @@
         <div id="fastMoneyUI" class="hidden flex-col items-center w-full">
             <h2 class="text-5xl font-bold mb-8 text-yellow-400">⚡ Fast Money! ⚡</h2>
 
-            <div id="fastMoneyAnswersContainer" class="grid grid-cols-2 gap-4 w-full">
-                </div>
-
             <div class="fast-money-score-display">
                 <div class="fast-money-score-item">
                     <h2>Team A</h2>
@@ -141,8 +138,10 @@
                 </div>
             </div>
 
-            <div class="fast-money-score">Total: <span id="fastMoneyTotalScore">0</span></div>
-        </div>
+            <div id="fastMoneyAnswersContainer" class="grid grid-cols-2 gap-4 w-full">
+                </div>
+
+            </div>
     </div>
 
     <audio id="introSound" src="intro.mp3" preload="auto"></audio>
@@ -433,16 +432,13 @@
             }
         }
 
-        // --- Modified displayFastMoneyRound function to play answer.mp3 ---
         function displayFastMoneyRound(data) {
             const fastMoneyRounds = Array.isArray(data.fastMoneyRounds) ? data.fastMoneyRounds : [];
             const currentFMRoundIndex = data.currentFastMoneyRoundIndex ?? 0;
-            const fastMoneyTotalPoints = data.fastMoneyTotalPoints ?? 0;
-
-            const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
+            // const fastMoneyTotalPoints = data.fastMoneyTotalPoints ?? 0; // Removed as requested
 
             roundNumberEl.textContent = `Fast Money Round ${currentFMRoundIndex + 1}`;
-            fastMoneyTotalScoreEl.textContent = fastMoneyTotalPoints;
+            // fastMoneyTotalScoreEl.textContent = fastMoneyTotalPoints; // Removed as requested
 
             fastMoneyScoreAEl.textContent = data.scoreA || 0;
             fastMoneyScoreBEl.textContent = data.scoreB || 0;
@@ -457,15 +453,34 @@
                     if (questionBox) {
                         fastMoneyAnswersContainer.appendChild(questionBox);
 
-                        // --- Sound Playback Logic for Fast Money Answers ---
-                        // Only play sound if a game is active and a new reveal is detected
+                        // --- Sound Playback Logic for Fast Money Contestant Answers and Points ---
                         if (currentActiveGameName && !soundPlayedForThisUpdate) {
                             const prevQData = previousFastMoneyQuestionsState[qIndex] || {};
 
-                            // Check for contestant answer reveals
+                            // Play 'answer.mp3' for contestant answer reveal
                             if ((qData.revealedContestantAnswer1 && !prevQData.revealedContestantAnswer1) ||
                                 (qData.revealedContestantAnswer2 && !prevQData.revealedContestantAnswer2)) {
                                 playAnswerSound();
+                                soundPlayedForThisUpdate = true; // Prevent further sounds for this update cycle
+                            }
+
+                            // Play ding/buzz for contestant points reveal
+                            // Check if either contestant's points have just been revealed
+                            const c1PointsJustRevealed = qData.revealedContestantPoints1 && !prevQData.revealedContestantPoints1;
+                            const c2PointsJustRevealed = qData.revealedContestantPoints2 && !prevQData.revealedContestantPoints2;
+
+                            if ((c1PointsJustRevealed || c2PointsJustRevealed) && !soundPlayedForThisUpdate) {
+                                // Ensure points are numbers, default to 0 if not valid
+                                const points1 = typeof qData.contestantPoints1 === 'number' ? qData.contestantPoints1 : 0;
+                                const points2 = typeof qData.contestantPoints2 === 'number' ? qData.contestantPoints2 : 0;
+                                
+                                const totalContestantPoints = points1 + points2;
+
+                                if (totalContestantPoints > 0) {
+                                    playDing();
+                                } else {
+                                    playBuzz();
+                                }
                                 soundPlayedForThisUpdate = true; // Prevent further sounds for this update cycle
                             }
                         }
