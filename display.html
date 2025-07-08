@@ -21,6 +21,45 @@
             color: #ADD8E6; /* Light Blue */
             text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
         }
+        /* Custom styles for consistent answer box size */
+        .answer-box-base {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fbbf24; /* bg-yellow-400 */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-bottom: 0.5rem; /* mb-2 */
+            padding: 0.75rem; /* p-3 */
+            min-height: 60px; /* min-h-[60px] */
+            box-sizing: border-box; /* Ensures padding/border are included in total width/height */
+        }
+        .answer-box-blank {
+            background-color: #fbbf24; /* bg-yellow-400 */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-bottom: 0.5rem; /* mb-2 */
+            padding: 0.75rem; /* p-3 */
+            min-height: 60px; /* min-h-[60px] */
+            display: flex; /* Make it a flex container to align the number circle if used */
+            justify-content: center; /* Center horizontally if content is added later */
+            align-items: center; /* Center vertically */
+            box-sizing: border-box;
+        }
+        /* Centering the number circle content */
+        .answer-number-circle {
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            width: 40px; /* w-10 */
+            height: 40px; /* h-10 */
+            border-radius: 9999px; /* rounded-full */
+            border-width: 4px; /* border-4 */
+            border-color: #000; /* border-black */
+            background-color: #fcd34d; /* bg-yellow-200 */
+            color: #000; /* text-black */
+            font-weight: bold; /* font-bold */
+            font-size: 1.25rem; /* text-xl */
+            user-select: none; /* select-none */
+        }
     </style>
 </head>
 <body class="bg-blue-900 text-white min-h-screen flex flex-col items-center p-8 select-none">
@@ -63,6 +102,10 @@
         </div>
     </div>
 
+    <audio id="dingSound" src="https://www.soundjay.com/misc/sounds/ding-4.mp3" preload="auto"></audio>
+    <audio id="buzzSound" src="https://www.soundjay.com/misc/sounds/buzz-2.mp3" preload="auto"></audio>
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
         import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
@@ -93,15 +136,34 @@
         const fastMoneyTimerEl = document.getElementById('fastMoneyTimer');
         const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore');
 
+        // Audio elements
+        const dingSound = document.getElementById('dingSound');
+        const buzzSound = document.getElementById('buzzSound');
+
         let activeGameRef = null; // Will store the ref to the currently active game data
+        let previousRevealedState = []; // To track changes for ding sound
+        let previousStrikes = 0; // To track changes for buzz sound
+        let currentActiveGameName = null; // To store the name of the currently active game
+
+        // --- Audio Functions ---
+        function playDing() {
+            dingSound.currentTime = 0; // Rewind to start
+            dingSound.play().catch(e => console.warn("Ding sound play failed:", e));
+        }
+
+        function playBuzz() {
+            buzzSound.currentTime = 0; // Rewind to start
+            buzzSound.play().catch(e => console.warn("Buzz sound play failed:", e));
+        }
 
         // --- Helper: Normal Round Answer Box Creation ---
         function createAnswerBox(number, answer, revealed, points) {
             const container = document.createElement('div');
-            container.className = 'flex justify-between items-center bg-yellow-400 rounded-md mb-2 p-3 min-h-[60px]';
+            // Use the base class for consistent styling
+            container.className = 'answer-box-base';
 
             const leftDiv = document.createElement('div');
-            leftDiv.className = 'flex items-center flex-1';
+            leftDiv.className = 'flex items-center flex-1'; // flex-1 to allow answer text to grow
 
             if (revealed) {
                 const answerText = document.createElement('span');
@@ -110,7 +172,8 @@
                 leftDiv.appendChild(answerText);
             } else {
                 const circle = document.createElement('div');
-                circle.className = 'flex justify-center items-center w-10 h-10 rounded-full border-4 border-black bg-yellow-200 text-black font-bold text-xl select-none';
+                // Use the custom class for centering
+                circle.className = 'answer-number-circle';
                 circle.textContent = number;
                 leftDiv.appendChild(circle);
             }
@@ -129,7 +192,7 @@
             return container;
         }
 
-        // --- Helper: Fast Money Answer Box Creation ---
+        // --- Helper: Fast Money Answer Box Creation (No changes here for this request) ---
         function createFastMoneyAnswerBox(questionData, answerIndex) {
             const answer = questionData.topAnswers[answerIndex];
             if (!answer) return null; // Should not happen if data is structured correctly
@@ -234,22 +297,32 @@
             const col2 = document.createElement('div');
             col2.className = 'flex flex-col flex-1 gap-2';
 
+            let currentRevealedState = []; // To capture the state for this render
+
             for (let i = 0; i < maxSlots; i++) {
                 const answerObj = currentRound.answers[i];
-                const isRevealed = currentRound.revealed?.[i] || false; // Use optional chaining and default to false
+                const isRevealed = currentRound.revealed?.[i] || false;
                 const number = i + 1;
 
                 const col = i < col1Count ? col1 : col2;
 
                 if (!answerObj) {
                     const blankBox = document.createElement('div');
-                    blankBox.className = 'bg-yellow-400 rounded-md mb-2 p-3 min-h-[60px] select-none';
+                    // Use the custom blank box class
+                    blankBox.className = 'answer-box-blank';
+                    // Optional: Add a placeholder number circle in blank boxes for visual consistency if desired
+                    // const circle = document.createElement('div');
+                    // circle.className = 'answer-number-circle';
+                    // circle.textContent = number;
+                    // blankBox.appendChild(circle);
                     col.appendChild(blankBox);
+                    currentRevealedState.push(false); // Mark as not revealed for comparison
                     continue;
                 }
 
                 const box = createAnswerBox(number, answerObj.text, isRevealed, answerObj.points);
                 col.appendChild(box);
+                currentRevealedState.push(isRevealed);
             }
 
             colsWrapper.appendChild(col1);
@@ -259,10 +332,32 @@
             scoreAEl.textContent = data.scoreA || 0;
             scoreBEl.textContent = data.scoreB || 0;
 
+            // --- Sound Logic for Revealed Answers ---
+            // Only play ding if the game is active (not just starting/loading an empty state)
+            if (currentActiveGameName) {
+                for (let i = 0; i < currentRevealedState.length; i++) {
+                    // Check if current answer is revealed AND it was NOT revealed in the previous state
+                    // This prevents dinging when the page first loads or when navigating rounds
+                    if (currentRevealedState[i] && (previousRevealedState[i] === false || previousRevealedState[i] === undefined)) {
+                        playDing();
+                        break; // Play ding only for the first newly revealed answer
+                    }
+                }
+            }
+            previousRevealedState = [...currentRevealedState]; // Update for next comparison
+
+            // --- Sound Logic for Strikes ---
+            const currentStrikes = currentRound.strikes || 0;
+            // Only play buzz if current strikes are greater than previous strikes
+            if (currentStrikes > previousStrikes && currentActiveGameName) {
+                playBuzz();
+            }
+            previousStrikes = currentStrikes; // Update for next comparison
+
+
             [1, 2, 3].forEach(n => {
                 const el = document.getElementById(`strike${n}`);
                 if (el) {
-                    // Use class for opacity for better transition control
                     if ((currentRound.strikes || 0) >= n) {
                         el.classList.remove('opacity-20');
                         el.classList.add('opacity-100');
@@ -273,10 +368,15 @@
                 }
             });
 
-            roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
+            // Update round number display
+            if (data.rounds && data.rounds.length > 0) {
+                roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
+            } else {
+                 roundNumberEl.textContent = "Waiting for game to start...";
+            }
         }
 
-        // --- Display Fast Money Round Logic ---
+        // --- Display Fast Money Round Logic (No changes here for this request) ---
         function displayFastMoneyRound(data) {
             const fastMoneyRounds = Array.isArray(data.fastMoneyRounds) ? data.fastMoneyRounds : [];
             const currentFMRoundIndex = data.currentFastMoneyRoundIndex ?? 0;
@@ -285,7 +385,9 @@
             const fastMoneyTotalPoints = data.fastMoneyTotalPoints ?? 0;
 
             const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
+            // Ensure currentFMQuestion is valid to avoid errors if fastMoneyQuestionIndex is out of bounds
             const currentFMQuestion = currentFMRound.questions[currentFMQuestionIndex];
+
 
             roundNumberEl.textContent = `Fast Money Round ${currentFMRoundIndex + 1}`;
             fastMoneyTimerEl.textContent = fastMoneyTimer.toString().padStart(2, '0');
@@ -293,9 +395,7 @@
 
             fastMoneyAnswersContainer.innerHTML = ''; // Clear previous questions
 
-            if (currentFMQuestion) {
-                // For Fast Money, we'll display 5 boxes, each corresponding to a question/answer set
-                // We will render all 5 questions for the current fast money round
+            if (currentFMRound && currentFMRound.questions && currentFMRound.questions.length > 0) {
                 currentFMRound.questions.forEach((qData, qIndex) => {
                     const questionBox = createFastMoneyAnswerBox(qData, qIndex); // Pass question data and its index
                     if (questionBox) {
@@ -315,11 +415,17 @@
                 const activeGameName = activeGameSnapshot.val();
                 console.log(`Active game changed to: ${activeGameName}`);
 
-                // If there was a previous listener, detach it
-                if (activeGameRef) {
-                    off(activeGameRef); // Detach the old listener
-                    activeGameRef = null;
+                // If the active game has changed, detach old listener and reset states
+                if (currentActiveGameName !== activeGameName) {
+                    if (activeGameRef) {
+                        off(activeGameRef); // Detach the old listener
+                        activeGameRef = null;
+                    }
+                    previousRevealedState = []; // Reset for new game
+                    previousStrikes = 0; // Reset for new game
+                    currentActiveGameName = activeGameName; // Update current active game name
                 }
+
 
                 if (activeGameName) {
                     // 2. If an active game is set, listen to its specific data
