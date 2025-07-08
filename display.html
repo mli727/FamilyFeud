@@ -58,7 +58,7 @@
             /* --- IMPORTANT: Ensure text within answer box stays in one line --- */
             white-space: nowrap; /* Prevent text wrapping inside the revealed answer */
         }
-       
+        
         /* Add this rule to prevent long answers from wrapping and increasing box height */
         .answer-box-base .text-black {
             white-space: nowrap; /* Keep answer text on a single line */
@@ -178,18 +178,15 @@
         const normalRoundUI = document.getElementById('normalRoundUI');
         const fastMoneyUI = document.getElementById('fastMoneyUI');
         const fastMoneyAnswersContainer = document.getElementById('fastMoneyAnswersContainer');
-        // Removed fastMoneyTimerEl as it's no longer needed in HTML or JS
         const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore'); // Total FM score
-        // New: Fast Money Team Scores
         const fastMoneyScoreAEl = document.getElementById('fastMoneyScoreA');
         const fastMoneyScoreBEl = document.getElementById('fastMoneyScoreB');
-
 
         // Audio elements
         const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
-        const answerSound = document.getElementById('answerSound');
+        const answerSound = document.getElementById('answerSound'); // Your new audio element
 
         // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
@@ -199,6 +196,11 @@
         let previousRevealedState = [];
         let previousStrikes = 0;
         let currentActiveGameName = null;
+
+        // --- NEW: To track previous state for Fast Money reveals ---
+        // We'll store a deep copy of the fastMoneyRounds questions
+        let previousFastMoneyQuestionsState = [];
+
 
         // --- Audio Functions ---
         function playIntro() {
@@ -221,22 +223,22 @@
             answerSound.play().catch(e => console.warn("Answer sound play failed:", e));
         }  
 
-        // --- Helper: Normal Round Answer Box Creation ---
+        // --- Helper: Normal Round Answer Box Creation (No changes needed here) ---
         function createAnswerBox(number, answer, revealed, points) {
             const container = document.createElement('div');
-            container.className = 'answer-box-base'; // Uses CSS for fixed height
+            container.className = 'answer-box-base';
 
             const leftDiv = document.createElement('div');
             leftDiv.className = 'flex items-center flex-1';
 
             if (revealed) {
                 const answerText = document.createElement('span');
-                answerText.className = 'text-black text-xl font-semibold truncate'; // truncate handled by CSS
+                answerText.className = 'text-black text-xl font-semibold truncate';
                 answerText.textContent = answer;
                 leftDiv.appendChild(answerText);
             } else {
                 const circle = document.createElement('div');
-                circle.className = 'answer-number-circle'; // Uses CSS for centering
+                circle.className = 'answer-number-circle';
                 circle.textContent = number;
                 leftDiv.appendChild(circle);
             }
@@ -255,7 +257,7 @@
             return container;
         }
 
-        // --- Helper: Fast Money Answer Box Creation ---
+        // --- Helper: Fast Money Answer Box Creation (No changes needed here, as sound logic is outside) ---
         function createFastMoneyAnswerBox(questionData, answerIndex) {
             const answer = questionData.topAnswers[answerIndex];
             if (!answer) return null;
@@ -319,13 +321,13 @@
                 fastMoneyUI.classList.add('flex');
                 displayFastMoneyRound(data);
             } else if (currentRoundIndex === "gameOver") {
-                 normalRoundUI.classList.remove('hidden');
-                 normalRoundUI.classList.add('flex');
-                 fastMoneyUI.classList.add('hidden');
-                 fastMoneyUI.classList.remove('flex');
-                 roundNumberEl.textContent = "Game Over!";
-                 questionEl.textContent = "Thank you for playing!";
-                 answersContainer.innerHTML = '';
+                normalRoundUI.classList.remove('hidden');
+                normalRoundUI.classList.add('flex');
+                fastMoneyUI.classList.add('hidden');
+                fastMoneyUI.classList.remove('flex');
+                roundNumberEl.textContent = "Game Over!";
+                questionEl.textContent = "Thank you for playing!";
+                answersContainer.innerHTML = '';
             }
             else {
                 normalRoundUI.classList.remove('hidden');
@@ -336,7 +338,7 @@
             }
         }
 
-        // --- Display Normal Round Logic ---
+        // --- Display Normal Round Logic (Slight adjustment for previousRevealedState initialization) ---
         function displayNormalRound(data) {
             const rounds = Array.isArray(data.rounds) ? data.rounds : [];
             const currentIndex = typeof data.currentRoundIndex === 'number' ? data.currentRoundIndex : 0;
@@ -367,7 +369,7 @@
 
                 if (!answerObj) {
                     const blankBox = document.createElement('div');
-                    blankBox.className = 'answer-box-blank'; // Uses CSS for fixed height
+                    blankBox.className = 'answer-box-blank';
                     col.appendChild(blankBox);
                     currentRevealedState.push(false);
                     continue;
@@ -385,18 +387,27 @@
             scoreAEl.textContent = data.scoreA || 0;
             scoreBEl.textContent = data.scoreB || 0;
 
+            // Only play sound if game is active AND there's a change
             if (currentActiveGameName) {
-                for (let i = 0; i < currentRevealedState.length; i++) {
-                    if (currentRevealedState[i] && (previousRevealedState[i] === false || previousRevealedState[i] === undefined)) {
-                        playDing();
-                        break;
+                // If previousRevealedState is empty (first load or new game), initialize it
+                if (previousRevealedState.length === 0 && currentRevealedState.some(state => state)) {
+                    // Don't play sound on initial load if answers are already revealed
+                    // Just set the state to current
+                    previousRevealedState = [...currentRevealedState];
+                } else {
+                    for (let i = 0; i < currentRevealedState.length; i++) {
+                        if (currentRevealedState[i] && (previousRevealedState[i] === false || previousRevealedState[i] === undefined)) {
+                            playDing();
+                            break; // Play sound for the first newly revealed answer and stop
+                        }
                     }
+                    previousRevealedState = [...currentRevealedState];
                 }
             }
-            previousRevealedState = [...currentRevealedState];
+
 
             const currentStrikes = currentRound.strikes || 0;
-            if (currentStrikes > previousStrikes && currentActiveGameName) {
+            if (currentActiveGameName && currentStrikes > previousStrikes) {
                 playBuzz();
             }
             previousStrikes = currentStrikes;
@@ -418,11 +429,11 @@
             if (data.rounds && data.rounds.length > 0) {
                 roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
             } else {
-                 roundNumberEl.textContent = "Waiting for game to start...";
+                roundNumberEl.textContent = "Waiting for game to start...";
             }
         }
 
-        // --- Modified displayFastMoneyRound function ---
+        // --- Modified displayFastMoneyRound function to play answer.mp3 ---
         function displayFastMoneyRound(data) {
             const fastMoneyRounds = Array.isArray(data.fastMoneyRounds) ? data.fastMoneyRounds : [];
             const currentFMRoundIndex = data.currentFastMoneyRoundIndex ?? 0;
@@ -431,13 +442,12 @@
             const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
 
             roundNumberEl.textContent = `Fast Money Round ${currentFMRoundIndex + 1}`;
-            // Removed fastMoneyTimerEl.textContent update here
             fastMoneyTotalScoreEl.textContent = fastMoneyTotalPoints;
 
-            // Display individual team scores in Fast Money (NEW)
             fastMoneyScoreAEl.textContent = data.scoreA || 0;
             fastMoneyScoreBEl.textContent = data.scoreB || 0;
 
+            let soundPlayedForThisUpdate = false; // Flag to prevent multiple sounds for one Firebase update
 
             fastMoneyAnswersContainer.innerHTML = '';
 
@@ -446,10 +456,41 @@
                     const questionBox = createFastMoneyAnswerBox(qData, qIndex);
                     if (questionBox) {
                         fastMoneyAnswersContainer.appendChild(questionBox);
+
+                        // --- Sound Playback Logic for Fast Money Answers ---
+                        // Only play sound if a game is active and a new reveal is detected
+                        if (currentActiveGameName && !soundPlayedForThisUpdate) {
+                            const prevQData = previousFastMoneyQuestionsState[qIndex] || {};
+
+                            // Check for contestant answer reveals
+                            if ((qData.revealedContestantAnswer1 && !prevQData.revealedContestantAnswer1) ||
+                                (qData.revealedContestantAnswer2 && !prevQData.revealedContestantAnswer2)) {
+                                playAnswerSound();
+                                soundPlayedForThisUpdate = true; // Prevent further sounds for this update cycle
+                            }
+                            // Check for top answer reveals for this question
+                            if (!soundPlayedForThisUpdate && qData.topAnswers && prevQData.topAnswers) {
+                                for (let i = 0; i < qData.topAnswers.length; i++) {
+                                    const currentTopAns = qData.topAnswers[i];
+                                    const prevTopAns = prevQData.topAnswers[i] || {};
+                                    if (currentTopAns.revealedAnswer && !prevTopAns.revealedAnswer) {
+                                        playAnswerSound();
+                                        soundPlayedForThisUpdate = true;
+                                        break; // Found a new reveal, play sound and stop checking this question
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
+                // After processing all questions, update the previous state for the next update
+                // This creates a deep copy to ensure comparison works correctly
+                previousFastMoneyQuestionsState = JSON.parse(JSON.stringify(currentFMRound.questions));
+
             } else {
                 fastMoneyAnswersContainer.innerHTML = '<p class="text-center text-2xl col-span-2">No Fast Money questions for this round.</p>';
+                // If there are no Fast Money questions, ensure previous state is cleared
+                previousFastMoneyQuestionsState = [];
             }
         }
 
@@ -460,13 +501,11 @@
                 // --- FIX IS HERE: Hide the overlay IMMEDIATELY on click ---
                 audioUnlockOverlay.style.display = 'none'; 
                 console.log("User clicked to start. Attempting to play audio...");
-        
+                
                 playIntro().then(() => {
                     console.log("Intro sound played successfully!");
                 }).catch(e => {
                     console.error("Failed to play intro sound:", e);
-                    // Optional: You could show a message here if audio is crucial and failed silently.
-                    // For now, the overlay is already gone, which is the main goal.
                     alert("Audio playback may be restricted by your browser. Please ensure the tab is not muted or try clicking again if sounds don't work.");
                 });
             }, { once: true }); // Ensure it only runs once
@@ -480,8 +519,10 @@
                         off(activeGameRef);
                         activeGameRef = null;
                     }
+                    // Reset previous states when switching games
                     previousRevealedState = [];
                     previousStrikes = 0;
+                    previousFastMoneyQuestionsState = []; // Reset Fast Money previous state too
                     currentActiveGameName = activeGameName;
                 }
 
