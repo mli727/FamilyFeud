@@ -137,11 +137,16 @@
                 <h2 class="text-xl font-bold mb-2">Round ${currentRoundIndex + 1}</h2>
                 <div class="mb-2">
                     <label class="block mb-1 font-semibold">Question:</label>
-                    <input type="text" class="questionInput w-full p-2 border rounded" value="${prefill?.question || ''}">
+                    <div class="flex gap-2 items-center">
+                        <input type="text" class="questionInput w-full p-2 border rounded" value="${prefill?.question || ''}">
+                        <button class="revealQuestionBtn bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">Reveal Question</button>
+                    </div>
                 </div>
                 <div class="answersContainer"></div>
                 <button class="addAnswerBtn mt-2 px-3 py-1 bg-blue-500 text-white rounded">Add Answer</button>
             `;
+
+            div.querySelector(".revealQuestionBtn").onclick = () => revealQuestion(currentRoundIndex);
 
             const answersContainer = div.querySelector(".answersContainer");
             (prefill?.answers || []).forEach((answer, answerIndex) => {
@@ -332,6 +337,11 @@
                 div.querySelectorAll(".revealBtn").forEach((btn, answerIndex) => {
                     btn.onclick = () => revealAnswer(i, answerIndex);
                 });
+                // Also update the reveal question button callback for the new button
+                const revealQBtn = div.querySelector(".revealQuestionBtn");
+                if (revealQBtn) {
+                    revealQBtn.onclick = () => revealQuestion(i);
+                }
             });
             roundCount = roundDivs.length;
         }
@@ -359,7 +369,28 @@
             fastMoneyCount = fmDivs.length;
         }
 
-
+        window.revealQuestion = function (roundIndex) {
+            if (!currentGameName) {
+                alert("Please load or name a game version before revealing questions.");
+                return;
+            }
+            const gameRef = ref(db, `games/${currentGameName}`);
+            get(gameRef).then(snapshot => {
+                const data = snapshot.val() || {};
+                if (!data.rounds?.[roundIndex]) {
+                    console.warn(`Attempted to reveal question for non-existent round ${roundIndex}`);
+                    return;
+                }
+                // Set questionRevealed flag to true
+                data.rounds[roundIndex].questionRevealed = true;
+                set(gameRef, data)
+                    .then(() => console.log(`Question revealed for round ${roundIndex} in game ${currentGameName}`))
+                    .catch(err => console.error("Error revealing question:", err));
+            }).catch(error => {
+                console.error("Error fetching game data for revealQuestion:", error);
+            });
+        };
+        
         // --- Reveal normal round answer ---
         function revealAnswer(roundIndex, answerIndex) {
             if (!currentGameName) {
@@ -580,11 +611,12 @@
                     if (data.currentRoundIndex < totalNormalRounds - 1) {
                         // Advance to the next normal round
                         data.currentRoundIndex++;
-                        // Reset strikes and revealed answers when moving to a new normal round
-                        data.rounds[data.currentRoundIndex] = { 
+                        // Reset strikes, revealed answers, and question revealed state when moving to a new normal round
+                        data.rounds[data.currentRoundIndex] = {
                             ...data.rounds[data.currentRoundIndex], // Keep existing data
-                            strikes: 0, 
-                            revealed: Array(data.rounds[data.currentRoundIndex]?.answers?.length ?? 0).fill(false) 
+                            strikes: 0,
+                            revealed: Array(data.rounds[data.currentRoundIndex]?.answers?.length ?? 0).fill(false),
+                            questionRevealed: false // NEW: Ensure the question is hidden for the new round
                         };
                         console.log(`Advanced to Normal Round ${data.currentRoundIndex + 1}`);
                     } else if (totalFastMoneyRounds > 0) {
