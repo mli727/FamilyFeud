@@ -340,33 +340,55 @@
 
         // --- Display Normal Round Logic (Slight adjustment for previousRevealedState initialization) ---
         function displayNormalRound(data) {
+            console.log("--- displayNormalRound called ---");
+            console.log("Full data object:", data);
+        
             const rounds = Array.isArray(data.rounds) ? data.rounds : [];
             const currentIndex = typeof data.currentRoundIndex === 'number' ? data.currentRoundIndex : 0;
-            const currentRound = rounds[currentIndex] || { question: 'Waiting for host...', answers: [], revealed: [], strikes: 0 };
-
-            questionEl.textContent = currentRound.question || 'Waiting for host...';
+            
+            // Ensure currentRound has questionRevealed property, defaulting to false if not present
+            const currentRound = rounds[currentIndex] || { 
+                question: 'Waiting for host...', 
+                answers: [], 
+                revealed: [], 
+                strikes: 0,
+                questionRevealed: false // Add this default
+            };
+        
+            console.log("currentRound:", currentRound);
+        
+            // --- Question Display Logic ---
+            if (currentRound.questionRevealed) {
+                questionEl.textContent = currentRound.question || 'Waiting for host...';
+            } else {
+                questionEl.textContent = "Click 'Reveal Question' on Host Panel"; // Placeholder when hidden
+                // Alternatively, if you want it completely blank:
+                // questionEl.textContent = ""; 
+            }
+            // --- End Question Display Logic ---
+        
             answersContainer.innerHTML = '';
-
+        
             const maxSlots = 8;
             const col1Count = 4;
-
+        
             const colsWrapper = document.createElement('div');
             colsWrapper.className = 'flex gap-4 max-w-5xl w-full';
-
+        
             const col1 = document.createElement('div');
             col1.className = 'flex flex-col flex-1 gap-2';
             const col2 = document.createElement('div');
             col2.className = 'flex flex-col flex-1 gap-2';
-
+        
             let currentRevealedState = [];
-
+        
             for (let i = 0; i < maxSlots; i++) {
                 const answerObj = currentRound.answers[i];
                 const isRevealed = currentRound.revealed?.[i] || false;
                 const number = i + 1;
-
+        
                 const col = i < col1Count ? col1 : col2;
-
+        
                 if (!answerObj) {
                     const blankBox = document.createElement('div');
                     blankBox.className = 'answer-box-blank';
@@ -374,19 +396,19 @@
                     currentRevealedState.push(false);
                     continue;
                 }
-
+        
                 const box = createAnswerBox(number, answerObj.text, isRevealed, answerObj.points);
                 col.appendChild(box);
                 currentRevealedState.push(isRevealed);
             }
-
+        
             colsWrapper.appendChild(col1);
             colsWrapper.appendChild(col2);
             answersContainer.appendChild(colsWrapper);
-
+        
             scoreAEl.textContent = data.scoreA || 0;
             scoreBEl.textContent = data.scoreB || 0;
-
+        
             // Only play sound if game is active AND there's a change
             if (currentActiveGameName) {
                 // If previousRevealedState is empty (first load or new game), initialize it
@@ -404,15 +426,13 @@
                     previousRevealedState = [...currentRevealedState];
                 }
             }
-
-
+        
             const currentStrikes = currentRound.strikes || 0;
             if (currentActiveGameName && currentStrikes > previousStrikes) {
                 playBuzz();
             }
             previousStrikes = currentStrikes;
-
-
+        
             [1, 2, 3].forEach(n => {
                 const el = document.getElementById(`strike${n}`);
                 if (el) {
@@ -425,7 +445,7 @@
                     }
                 }
             });
-
+        
             if (data.rounds && data.rounds.length > 0) {
                 roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
             } else {
