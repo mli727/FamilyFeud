@@ -316,16 +316,6 @@
         function updateDisplay(data) {
             const currentRoundIndex = data.currentRoundIndex;
 
-            if (previousRoundIndex !== null && // Only play if a previous state exists (i.e., not initial load)
-                (currentRoundIndex !== previousRoundIndex || // Has the main mode/round index changed?
-                 (currentRoundIndex === "fastMoney" && currentFastMoneyRoundIndex !== previousFastMoneyRoundIndex)) // Or has the Fast Money sub-index changed?
-            ) {
-                if (transitionSound) { // Ensure transitionSound element exists
-                    transitionSound.currentTime = 0; // Rewind to start
-                    transitionSound.play().catch(e => console.warn("Transition sound play failed:", e));
-                }
-            }
-
             if (currentRoundIndex === "fastMoney") {
                 normalRoundUI.classList.add('hidden');
                 normalRoundUI.classList.remove('flex');
