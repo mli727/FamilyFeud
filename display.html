@@ -149,6 +149,7 @@
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
     <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
     <audio id="answerSound" src="answer.mp3" preload="auto"></audio>
+    <audio id="transitionSound" src="transition.mp3" preload="auto"></audio>
 
 
     <script type="module">
@@ -186,7 +187,8 @@
         const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
-        const answerSound = document.getElementById('answerSound'); // Your new audio element
+        const answerSound = document.getElementById('answerSound'); 
+        const transitionSound = document.getElementById('transitionSound');         
 
         // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
@@ -313,6 +315,16 @@
         // --- Main Update Display Function ---
         function updateDisplay(data) {
             const currentRoundIndex = data.currentRoundIndex;
+
+            if (previousRoundIndex !== null && // Only play if a previous state exists (i.e., not initial load)
+                (currentRoundIndex !== previousRoundIndex || // Has the main mode/round index changed?
+                 (currentRoundIndex === "fastMoney" && currentFastMoneyRoundIndex !== previousFastMoneyRoundIndex)) // Or has the Fast Money sub-index changed?
+            ) {
+                if (transitionSound) { // Ensure transitionSound element exists
+                    transitionSound.currentTime = 0; // Rewind to start
+                    transitionSound.play().catch(e => console.warn("Transition sound play failed:", e));
+                }
+            }
 
             if (currentRoundIndex === "fastMoney") {
                 normalRoundUI.classList.add('hidden');
