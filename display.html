@@ -201,6 +201,9 @@
 
         // --- NEW: To track previous state for Fast Money reveals ---
         // We'll store a deep copy of the fastMoneyRounds questions
+        let previousRoundIndex = null; // <--- ADD THIS LINE
+        let previousFastMoneyRoundIndex = null;
+        
         let previousFastMoneyQuestionsState = [];
 
 
@@ -313,31 +316,97 @@
         }
 
         // --- Main Update Display Function ---
+        // --- Main Update Display Function (MODIFIED) ---
         function updateDisplay(data) {
-            const currentRoundIndex = data.currentRoundIndex;
-
-            if (currentRoundIndex === "fastMoney") {
+            // Safely get currentRoundIndex, defaulting to null if data is null or currentRoundIndex isn't set
+            const currentRoundIndex = data ? data.currentRoundIndex : null;
+            // Get the current Fast Money round index for sound comparison
+            const currentFastMoneyRoundIndex = data ? data.currentFastMoneyRoundIndex : null;
+        
+            // --- TRANSITION SOUND LOGIC ---
+            // This condition prevents the sound from playing:
+            // 1. On the very first load of the page (when previousRoundIndex is null).
+            // 2. When the game is first started by the host (currentRoundIndex changes from null/undefined to 0, but previousRoundIndex is still null).
+            // The sound *will* play when:
+            // - Normal Round X -> Normal Round Y
+            // - Normal Round -> Fast Money
+            // - Fast Money Round X -> Fast Money Round Y
+            if (previousRoundIndex !== null && // Only play if a previous state exists (i.e., not initial load)
+                (currentRoundIndex !== previousRoundIndex || // Has the main mode/round index changed?
+                 (currentRoundIndex === "fastMoney" && currentFastMoneyRoundIndex !== previousFastMoneyRoundIndex)) // Or has the Fast Money sub-index changed?
+            ) {
+                if (transitionSound) { // Ensure transitionSound element exists
+                    transitionSound.currentTime = 0; // Rewind to start
+                    transitionSound.play().catch(e => console.warn("Transition sound play failed:", e));
+                }
+            }
+            // --- END TRANSITION SOUND LOGIC ---
+        
+        
+            // --- UI VISIBILITY MANAGEMENT (MODIFIED) ---
+            // Hide all main content areas by default for controlled display
+            audioUnlockOverlay.classList.add('hidden'); // This is usually handled by start button, but good for safety
+            mainGameArea.classList.add('hidden'); // Hide the main game UI container initially
+        
+            if (currentRoundIndex === null || currentRoundIndex === undefined) {
+                // State: No game selected, or game was reset/not initialized
+                audioUnlockOverlay.classList.remove('hidden'); // Show the "Click to Start" overlay
+                roundNumberEl.textContent = "Waiting for host to select a game...";
+                questionEl.textContent = "Waiting for host...";
+                answersContainer.innerHTML = '';
+                fastMoneyAnswersContainer.innerHTML = '';
+                scoreAEl.textContent = '0';
+                scoreBEl.textContent = '0';
+                fastMoneyScoreAEl.textContent = '0';
+                fastMoneyScoreBEl.textContent = '0';
+                fastMoneyTotalScoreEl.textContent = '0';
+                // Reset strikes visually
+                [1, 2, 3].forEach(n => {
+                    document.getElementById(`strike${n}`).classList.remove('opacity-100');
+                    document.getElementById(`strike${n}`).classList.add('opacity-20');
+                });
+                // Ensure both UI modes are hidden
+                normalRoundUI.classList.remove('flex');
+                normalRoundUI.classList.add('hidden');
+                fastMoneyUI.classList.remove('flex');
+                fastMoneyUI.classList.add('hidden');
+        
+            } else if (currentRoundIndex === "fastMoney") {
+                mainGameArea.classList.remove('hidden'); // Show the main game content
                 normalRoundUI.classList.add('hidden');
                 normalRoundUI.classList.remove('flex');
                 fastMoneyUI.classList.remove('hidden');
                 fastMoneyUI.classList.add('flex');
                 displayFastMoneyRound(data);
             } else if (currentRoundIndex === "gameOver") {
-                normalRoundUI.classList.remove('hidden');
+                mainGameArea.classList.remove('hidden'); // Show the main game content
+                normalRoundUI.classList.remove('hidden'); // Use normalRoundUI for game over message
                 normalRoundUI.classList.add('flex');
                 fastMoneyUI.classList.add('hidden');
                 fastMoneyUI.classList.remove('flex');
                 roundNumberEl.textContent = "Game Over!";
                 questionEl.textContent = "Thank you for playing!";
-                answersContainer.innerHTML = '';
-            }
-            else {
+                answersContainer.innerHTML = ''; // Clear answers
+                // Optionally reset scores/strikes visually if they persist on game over
+                scoreAEl.textContent = data.scoreA || 0; // Display final scores
+                scoreBEl.textContent = data.scoreB || 0;
+                // Reset strikes visually for game over screen
+                [1, 2, 3].forEach(n => {
+                    document.getElementById(`strike${n}`).classList.remove('opacity-100');
+                    document.getElementById(`strike${n}`).classList.add('opacity-20');
+                });
+            } else { // This handles normal rounds (when currentRoundIndex is a number like 0, 1, 2...)
+                mainGameArea.classList.remove('hidden'); // Show the main game content
                 normalRoundUI.classList.remove('hidden');
                 normalRoundUI.classList.add('flex');
                 fastMoneyUI.classList.add('hidden');
                 fastMoneyUI.classList.remove('flex');
                 displayNormalRound(data);
             }
+        
+            // --- UPDATE PREVIOUS STATE VARIABLES (AT THE VERY END OF THE FUNCTION) ---
+            previousRoundIndex = currentRoundIndex;
+            previousFastMoneyRoundIndex = currentFastMoneyRoundIndex;
         }
 
         // --- Display Normal Round Logic (Slight adjustment for previousRevealedState initialization) ---
@@ -534,6 +603,8 @@
                     previousStrikes = 0;
                     previousFastMoneyQuestionsState = []; // Reset Fast Money previous state too
                     currentActiveGameName = activeGameName;
+                    previousRoundIndex = null;
+                    previousFastMoneyRoundINdex = null;
                 }
 
                 if (activeGameName) {
@@ -544,45 +615,14 @@
                             updateDisplay(data);
                         } else {
                             console.warn(`Game data for ${activeGameName} not found.`);
-                            roundNumberEl.textContent = "No active game selected.";
-                            questionEl.textContent = "Waiting for host to select a game...";
-                            answersContainer.innerHTML = '';
-                            fastMoneyAnswersContainer.innerHTML = '';
-                            scoreAEl.textContent = '0';
-                            scoreBEl.textContent = '0';
-                            fastMoneyScoreAEl.textContent = '0'; // Reset Fast Money scores too
-                            fastMoneyScoreBEl.textContent = '0'; // Reset Fast Money scores too
-                            fastMoneyTotalScoreEl.textContent = '0'; // Reset Fast Money total too
-                            [1, 2, 3].forEach(n => {
-                                document.getElementById(`strike${n}`).classList.remove('opacity-100');
-                                document.getElementById(`strike${n}`).classList.add('opacity-20');
-                            });
-                            normalRoundUI.classList.remove('hidden');
-                            normalRoundUI.classList.add('flex');
-                            fastMoneyUI.classList.add('hidden');
-                            fastMoneyUI.classList.remove('flex');
+                            updateDisplay(null);
                         }
                     }, (error) => {
                         console.error("Error listening to active game data:", error);
                     });
                 } else {
-                    roundNumberEl.textContent = "No active game selected.";
-                    questionEl.textContent = "Waiting for host to select a game...";
-                    answersContainer.innerHTML = '';
-                    fastMoneyAnswersContainer.innerHTML = '';
-                    scoreAEl.textContent = '0';
-                    scoreBEl.textContent = '0';
-                    fastMoneyScoreAEl.textContent = '0'; // Reset Fast Money scores too
-                    fastMoneyScoreBEl.textContent = '0'; // Reset Fast Money scores too
-                    fastMoneyTotalScoreEl.textContent = '0'; // Reset Fast Money total too
-                    [1, 2, 3].forEach(n => {
-                        document.getElementById(`strike${n}`).classList.remove('opacity-100');
-                        document.getElementById(`strike${n}`).classList.add('opacity-20');
-                    });
-                    normalRoundUI.classList.remove('hidden');
-                    normalRoundUI.classList.add('flex');
-                    fastMoneyUI.classList.add('hidden');
-                    fastMoneyUI.classList.remove('flex');
+                    updateDisplay(null); // <--- MODIFIED LINE
+                    console.log("No active game selected by host.");
                 }
             }, (error) => {
                 console.error("Error listening to activeGame path:", error);
