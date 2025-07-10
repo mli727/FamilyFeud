@@ -134,7 +134,10 @@
             const currentRoundIndex = roundCount; // Store the index for this round
 
             div.innerHTML = `
-                <h2 class="text-xl font-bold mb-2">Round ${currentRoundIndex + 1}</h2>
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold">Round ${currentRoundIndex + 1}</h2>
+                    <button class="deleteRoundBtn bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Delete Round</button>
+                </div>
                 <div class="mb-2">
                     <label class="block mb-1 font-semibold">Question:</label>
                     <div class="flex gap-2 items-center">
@@ -147,7 +150,8 @@
             `;
 
             div.querySelector(".revealQuestionBtn").onclick = () => revealQuestion(currentRoundIndex);
-
+            div.querySelector(".deleteRoundBtn").onclick = () => deleteRound(currentRoundIndex);
+            
             const answersContainer = div.querySelector(".answersContainer");
             (prefill?.answers || []).forEach((answer, answerIndex) => {
                 const ansDiv = createAnswerInput(answer.text, answer.points, () => revealAnswer(currentRoundIndex, answerIndex));
@@ -165,6 +169,66 @@
             updateRoundLabels();
         };
 
+        // --- Delete Normal Round ---
+        window.deleteRound = async function (roundIndexToDelete) {
+            if (!currentGameName) {
+                alert("Please load or name a game version before deleting rounds.");
+                return;
+            }
+        
+            // Get the current game data to ensure we have the latest state
+            const gameRef = ref(db, `games/${currentGameName}`);
+            const snapshot = await get(gameRef).catch(err => console.error("Error fetching game data for deleteRound:", err));
+            const data = snapshot.val() || {};
+            let rounds = Array.isArray(data.rounds) ? data.rounds : [];
+        
+            if (roundIndexToDelete < 0 || roundIndexToDelete >= rounds.length) {
+                alert("Invalid round index to delete.");
+                return;
+            }
+        
+            if (confirm(`Are you sure you want to delete Round ${roundIndexToDelete + 1}? This action cannot be undone.`)) {
+                try {
+                    // Remove the round from the array
+                    // Using splice to remove the element and make the array contiguous
+                    rounds.splice(roundIndexToDelete, 1);
+        
+                    // Update the entire 'rounds' array in Firebase
+                    // This is crucial to prevent sparse arrays and ensure correct re-indexing
+                    await set(ref(db, `games/${currentGameName}/rounds`), rounds);
+        
+                    // Adjust currentRoundIndex if the deleted round was the current one or if subsequent rounds shifted
+                    let newCurrentRoundIndex = data.currentRoundIndex;
+                    if (typeof newCurrentRoundIndex === 'number') { // Only adjust if it's a normal round index
+                        if (newCurrentRoundIndex === roundIndexToDelete) {
+                            // If the current round was deleted, move to the previous one, or 0 if it was the first
+                            newCurrentRoundIndex = Math.max(0, roundIndexToDelete - 1);
+                        } else if (newCurrentRoundIndex > roundIndexToDelete) {
+                            // If a round before the current one was deleted, decrement currentRoundIndex
+                            newCurrentRoundIndex--;
+                        }
+                        // Ensure newCurrentRoundIndex doesn't exceed the new number of rounds
+                        newCurrentRoundIndex = Math.min(newCurrentRoundIndex, rounds.length > 0 ? rounds.length - 1 : 0);
+                    } else if (rounds.length === 0) {
+                        // If all normal rounds are deleted, set currentRoundIndex to 0 (or null if you prefer no active round)
+                        newCurrentRoundIndex = 0; // Or null, depending on your desired "no active round" state
+                    }
+        
+                    // Update the currentRoundIndex in Firebase
+                    await set(ref(db, `games/${currentGameName}/currentRoundIndex`), newCurrentRoundIndex);
+        
+                    // Also update the local roundCount and re-render the labels to reflect changes
+                    roundCount = rounds.length; // Update local count
+                    updateRoundLabels(); // Re-render labels for correct numbering
+        
+                    alert(`Round ${roundIndexToDelete + 1} deleted successfully. Game is now on Round ${newCurrentRoundIndex + 1}.`);
+        
+                } catch (error) {
+                    console.error("Error deleting round:", error);
+                    alert("Failed to delete round. Check console for details.");
+                }
+            }
+        };
 
         // Render normal rounds (initial load)
         function renderSavedRounds(rounds = []) {
@@ -341,6 +405,10 @@
                 const revealQBtn = div.querySelector(".revealQuestionBtn");
                 if (revealQBtn) {
                     revealQBtn.onclick = () => revealQuestion(i);
+                }
+                const deleteBtn = div.querySelector(".deleteRoundBtn");
+                if (deleteBtn) {
+                    deleteBtn.onclick = () => deleteRound(i);
                 }
             });
             roundCount = roundDivs.length;
