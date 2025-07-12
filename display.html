@@ -267,15 +267,14 @@
             const container = document.createElement('div');
             container.className = 'flex flex-col bg-blue-700 p-3 rounded-lg shadow-lg flex-1 min-w-0 max-w-full';
 
-            // Question Text (Modified for fixed height and overflow handling)
+            // Question Text (Modified for left alignment and increased fixed height)
             const questionTextEl = document.createElement('p');
-            // Added h-16 for a fixed height (64px), and overflow-hidden to ensure text stays within
-            // The text will naturally top-align within this fixed height due to flex-col on the parent container.
-            questionTextEl.className = 'text-base font-semibold text-yellow-300 text-center mb-2 h-24 overflow-hidden';
+            // Changed text-center to text-left, and h-16 to h-30 (which is 120px)
+            questionTextEl.className = 'text-base font-semibold text-yellow-300 text-left mb-2 h-30 overflow-hidden';
             questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`;
             container.appendChild(questionTextEl);
 
-            // Contestant Answers & Points - These will now align consistently
+            // Contestant Answers & Points - These will now align consistently due to the fixed question height
             const contestantSection = document.createElement('div');
             contestantSection.className = 'flex flex-col gap-2 mb-4';
 
