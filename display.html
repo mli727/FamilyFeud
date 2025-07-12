@@ -267,22 +267,23 @@
             const container = document.createElement('div');
             container.className = 'flex flex-col bg-blue-700 p-3 rounded-lg shadow-lg flex-1 min-w-0 max-w-full';
 
-            // Question Text (already updated)
+            // Question Text (Modified for fixed height and overflow handling)
             const questionTextEl = document.createElement('p');
-            questionTextEl.className = 'text-base font-semibold mb-2 text-yellow-300 text-center';
+            // Added h-16 for a fixed height (64px), and overflow-hidden to ensure text stays within
+            // The text will naturally top-align within this fixed height due to flex-col on the parent container.
+            questionTextEl.className = 'text-base font-semibold text-yellow-300 text-center mb-2 h-16 overflow-hidden';
             questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`;
             container.appendChild(questionTextEl);
 
-            // Contestant Answers & Points
+            // Contestant Answers & Points - These will now align consistently
             const contestantSection = document.createElement('div');
             contestantSection.className = 'flex flex-col gap-2 mb-4';
 
             const createContestantRow = (answer, points, revealedAnswer, revealedPoints) => {
                 const row = document.createElement('div');
-                // Removed redundant text-lg class here, as individual spans will define font size
                 row.className = 'flex justify-between items-center bg-blue-800 px-3 py-1 rounded-md';
                 row.innerHTML = `
-                    <span class="text-white text-sm">${revealedAnswer ? answer : '????'}</span>
+                    <span class="text-white text-sm flex-1 min-w-0 break-words">${revealedAnswer ? answer : '????'}</span>
                     <span class="text-yellow-400 font-bold text-sm">${revealedPoints ? points : '--'}</span>
                 `;
                 return row;
@@ -303,16 +304,15 @@
             container.appendChild(contestantSection);
 
 
-            // Top Answers Section
+            // Top Answers Section - These will also align consistently
             const topAnswersSection = document.createElement('div');
             topAnswersSection.className = 'flex flex-col gap-2';
 
-            questionData.topAnswers.forEach((topAns) => { // Removed idx as it's not used
+            questionData.topAnswers.forEach((topAns) => {
                 const topAnsRow = document.createElement('div');
-                // Removed redundant text-lg class here
                 topAnsRow.className = 'flex justify-between items-center bg-yellow-400 px-3 py-1 rounded-md';
                 topAnsRow.innerHTML = `
-                    <span class="text-black font-semibold text-sm">${topAns.revealedAnswer ? topAns.text : '????'}</span>
+                    <span class="text-black font-semibold text-sm flex-1 min-w-0 break-words">${topAns.revealedAnswer ? topAns.text : '????'}</span>
                     <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded min-w-[50px] text-center text-sm">${topAns.revealedPoints ? topAns.points : '--'}</span>
                 `;
                 topAnswersSection.appendChild(topAnsRow);
