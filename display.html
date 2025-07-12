@@ -127,7 +127,7 @@
         <div id="fastMoneyUI" class="hidden flex-col items-center w-full">
             <h2 class="text-5xl font-bold mb-8 text-yellow-400">⚡ Fast Money! ⚡</h2>
 
-            <div id="fastMoneyAnswersContainer" class="grid grid-cols-2 gap-4 w-full">
+            <div id="fastMoneyAnswersContainer" class="grid grid-cols-5 gap-4 w-full">
                 </div>
 
             <div class="fast-money-score-display">
@@ -263,54 +263,63 @@
         }
 
         // --- Helper: Fast Money Answer Box Creation (No changes needed here, as sound logic is outside) ---
-        function createFastMoneyAnswerBox(questionData, answerIndex) {
-            const answer = questionData.topAnswers[answerIndex];
-            if (!answer) return null;
-
+        function createFastMoneyAnswerBox(questionData, questionNumber) { // Changed answerIndex to questionNumber for clarity
             const container = document.createElement('div');
-            container.className = 'flex flex-col bg-blue-700 p-4 rounded-lg shadow-lg';
+            // Apply flex-col to the main container for each question
+            // Added flex-1 and min-w-0 for proper scaling within the grid, along with max-w
+            container.className = 'flex flex-col bg-blue-700 p-3 rounded-lg shadow-lg flex-1 min-w-0 max-w-full';
 
+            // Question Text
             const questionTextEl = document.createElement('p');
-            questionTextEl.className = 'text-lg font-semibold mb-2 text-yellow-300';
-            questionTextEl.textContent = `${answerIndex + 1}. ${questionData.question}`;
+            questionTextEl.className = 'text-lg font-semibold mb-2 text-yellow-300 text-center truncate'; // Added text-center, truncate
+            questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`; // Use questionNumber
             container.appendChild(questionTextEl);
 
-            // Contestant Answers and Points
-            const contestantAnswersDiv = document.createElement('div');
-            contestantAnswersDiv.className = 'mb-4';
+            // Contestant Answers & Points - Combined into a flex row
+            const contestantSection = document.createElement('div');
+            contestantSection.className = 'flex flex-col gap-2 mb-4'; // Changed to flex-col to stack C1 and C2
 
-            const contestant1Div = document.createElement('div');
-            contestant1Div.className = 'flex justify-between items-center bg-blue-800 p-2 rounded-md mb-2';
-            contestant1Div.innerHTML = `
-                <span class="text-white text-md">${questionData.revealedContestantAnswer1 ? questionData.contestantAnswer1 : '????'}</span>
-                <span class="text-yellow-400 font-bold">${questionData.revealedContestantPoints1 ? questionData.contestantPoints1 : '--'}</span>
-            `;
-            contestantAnswersDiv.appendChild(contestant1Div);
+            const createContestantRow = (answer, points, revealedAnswer, revealedPoints) => {
+                const row = document.createElement('div');
+                // Use flex and justify-between for horizontal alignment within the row
+                row.className = 'flex justify-between items-center bg-blue-800 px-3 py-1 rounded-md text-lg';
+                row.innerHTML = `
+                    <span class="text-white truncate">${revealedAnswer ? answer : '????'}</span>
+                    <span class="text-yellow-400 font-bold">${revealedPoints ? points : '--'}</span>
+                `;
+                return row;
+            };
 
-            const contestant2Div = document.createElement('div');
-            contestant2Div.className = 'flex justify-between items-center bg-blue-800 p-2 rounded-md';
-            contestant2Div.innerHTML = `
-                <span class="text-white text-md">${questionData.revealedContestantAnswer2 ? questionData.contestantAnswer2 : '????'}</span>
-                <span class="text-yellow-400 font-bold">${questionData.revealedContestantPoints2 ? questionData.contestantPoints2 : '--'}</span>
-            `;
-            contestantAnswersDiv.appendChild(contestant2Div);
+            contestantSection.appendChild(createContestantRow(
+                questionData.contestantAnswer1,
+                questionData.contestantPoints1,
+                questionData.revealedContestantAnswer1,
+                questionData.revealedContestantPoints1
+            ));
+            contestantSection.appendChild(createContestantRow(
+                questionData.contestantAnswer2,
+                questionData.contestantPoints2,
+                questionData.revealedContestantAnswer2,
+                questionData.revealedContestantPoints2
+            ));
+            container.appendChild(contestantSection);
 
-            container.appendChild(contestantAnswersDiv);
 
-            // Top Answers Section
-            const topAnswersDiv = document.createElement('div');
-            topAnswersDiv.className = 'flex flex-col gap-2';
+            // Top Answers Section - Combined into a flex row
+            const topAnswersSection = document.createElement('div');
+            topAnswersSection.className = 'flex flex-col gap-2'; // Changed to flex-col to stack top answers
 
             questionData.topAnswers.forEach((topAns, idx) => {
                 const topAnsRow = document.createElement('div');
-                topAnsRow.className = 'flex justify-between items-center bg-yellow-400 p-2 rounded-md';
+                // Use flex and justify-between for horizontal alignment within the row
+                topAnsRow.className = 'flex justify-between items-center bg-yellow-400 px-3 py-1 rounded-md text-lg'; // Added text-lg
                 topAnsRow.innerHTML = `
-                    <span class="text-black font-semibold">${topAns.revealedAnswer ? topAns.text : '????'}</span>
-                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded">${topAns.revealedPoints ? topAns.points : '--'}</span>
+                    <span class="text-black font-semibold truncate">${topAns.revealedAnswer ? topAns.text : '????'}</span>
+                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded min-w-[50px] text-center">${topAns.revealedPoints ? topAns.points : '--'}</span>
                 `;
-                topAnswersDiv.appendChild(topAnsRow);
+                topAnswersSection.appendChild(topAnsRow);
             });
-            container.appendChild(topAnswersDiv);
+            container.appendChild(topAnswersSection);
 
             return container;
         }
