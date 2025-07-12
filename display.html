@@ -263,29 +263,27 @@
         }
 
         // --- Helper: Fast Money Answer Box Creation (No changes needed here, as sound logic is outside) ---
-        function createFastMoneyAnswerBox(questionData, questionNumber) { // Changed answerIndex to questionNumber for clarity
+        function createFastMoneyAnswerBox(questionData, questionNumber) { // questionNumber is 0-indexed
             const container = document.createElement('div');
-            // Apply flex-col to the main container for each question
-            // Added flex-1 and min-w-0 for proper scaling within the grid, along with max-w
             container.className = 'flex flex-col bg-blue-700 p-3 rounded-lg shadow-lg flex-1 min-w-0 max-w-full';
 
-            // Question Text
+            // Question Text (already updated)
             const questionTextEl = document.createElement('p');
-            questionTextEl.className = 'text-base font-semibold mb-2 text-yellow-300 text-center'; // Changed text-lg to text-base, removed truncate
-            questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`; // Use questionNumber
+            questionTextEl.className = 'text-base font-semibold mb-2 text-yellow-300 text-center';
+            questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`;
             container.appendChild(questionTextEl);
 
-            // Contestant Answers & Points - Combined into a flex row
+            // Contestant Answers & Points
             const contestantSection = document.createElement('div');
-            contestantSection.className = 'flex flex-col gap-2 mb-4'; // Changed to flex-col to stack C1 and C2
+            contestantSection.className = 'flex flex-col gap-2 mb-4';
 
             const createContestantRow = (answer, points, revealedAnswer, revealedPoints) => {
                 const row = document.createElement('div');
-                // Use flex and justify-between for horizontal alignment within the row
-                row.className = 'flex justify-between items-center bg-blue-800 px-3 py-1 rounded-md text-lg';
+                // Removed redundant text-lg class here, as individual spans will define font size
+                row.className = 'flex justify-between items-center bg-blue-800 px-3 py-1 rounded-md';
                 row.innerHTML = `
-                    <span class="text-white truncate">${revealedAnswer ? answer : '????'}</span>
-                    <span class="text-yellow-400 font-bold">${revealedPoints ? points : '--'}</span>
+                    <span class="text-white text-sm">${revealedAnswer ? answer : '????'}</span>
+                    <span class="text-yellow-400 font-bold text-sm">${revealedPoints ? points : '--'}</span>
                 `;
                 return row;
             };
@@ -305,17 +303,17 @@
             container.appendChild(contestantSection);
 
 
-            // Top Answers Section - Combined into a flex row
+            // Top Answers Section
             const topAnswersSection = document.createElement('div');
-            topAnswersSection.className = 'flex flex-col gap-2'; // Changed to flex-col to stack top answers
+            topAnswersSection.className = 'flex flex-col gap-2';
 
-            questionData.topAnswers.forEach((topAns, idx) => {
+            questionData.topAnswers.forEach((topAns) => { // Removed idx as it's not used
                 const topAnsRow = document.createElement('div');
-                // Use flex and justify-between for horizontal alignment within the row
-                topAnsRow.className = 'flex justify-between items-center bg-yellow-400 px-3 py-1 rounded-md text-lg'; // Added text-lg
+                // Removed redundant text-lg class here
+                topAnsRow.className = 'flex justify-between items-center bg-yellow-400 px-3 py-1 rounded-md';
                 topAnsRow.innerHTML = `
-                    <span class="text-black font-semibold truncate">${topAns.revealedAnswer ? topAns.text : '????'}</span>
-                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded min-w-[50px] text-center">${topAns.revealedPoints ? topAns.points : '--'}</span>
+                    <span class="text-black font-semibold text-sm">${topAns.revealedAnswer ? topAns.text : '????'}</span>
+                    <span class="bg-yellow-600 text-black font-bold px-2 py-0.5 rounded min-w-[50px] text-center text-sm">${topAns.revealedPoints ? topAns.points : '--'}</span>
                 `;
                 topAnswersSection.appendChild(topAnsRow);
             });
