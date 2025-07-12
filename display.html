@@ -271,7 +271,7 @@
 
             // Question Text
             const questionTextEl = document.createElement('p');
-            questionTextEl.className = 'text-lg font-semibold mb-2 text-yellow-300 text-center truncate'; // Added text-center, truncate
+            questionTextEl.className = 'text-base font-semibold mb-2 text-yellow-300 text-center'; // Changed text-lg to text-base, removed truncate
             questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`; // Use questionNumber
             container.appendChild(questionTextEl);
 
