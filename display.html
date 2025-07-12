@@ -105,7 +105,7 @@
         <div id="normalRoundUI" class="flex flex-col items-center">
             <div id="question" class="text-3xl font-semibold text-center mb-8">Waiting for host...</div>
             <div id="answers" class="max-w-5xl w-full mb-8"></div>
-
+    
             <div class="flex gap-20 text-center text-2xl mb-8">
                 <div>
                     <h2 class="font-bold">Team A</h2>
@@ -116,20 +116,21 @@
                     <div id="scoreB">0</div>
                 </div>
             </div>
-
+    
             <div class="flex gap-4 text-4xl mb-8 select-none">
                 <span id="strike1" class="transition-opacity duration-300">❌</span>
                 <span id="strike2" class="transition-opacity duration-300">❌</span>
                 <span id="strike3" class="transition-opacity duration-300">❌</span>
             </div>
         </div>
-
+    
         <div id="fastMoneyUI" class="hidden flex-col items-center w-full">
             <h2 class="text-5xl font-bold mb-8 text-yellow-400">⚡ Fast Money! ⚡</h2>
-
+    
+            <div class="fast-money-score">Total: <span id="fastMoneyTotalScore">0</span></div>
             <div id="fastMoneyAnswersContainer" class="grid grid-cols-5 gap-4 w-full">
-                </div>
-
+            </div>
+    
             <div class="fast-money-score-display">
                 <div class="fast-money-score-item">
                     <h2>Team A</h2>
@@ -139,8 +140,6 @@
                     <h2>Team B</h2>
                     <div id="fastMoneyScoreB">0</div>
                 </div>
-            </div>
-                <div class="fast-money-score">Total: <span id="fastMoneyTotalScore">0</span>
             </div>
         </div>
     </div>
