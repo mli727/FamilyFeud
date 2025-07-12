@@ -271,7 +271,7 @@
             const questionTextEl = document.createElement('p');
             // Added h-16 for a fixed height (64px), and overflow-hidden to ensure text stays within
             // The text will naturally top-align within this fixed height due to flex-col on the parent container.
-            questionTextEl.className = 'text-base font-semibold text-yellow-300 text-center mb-2 h-16 overflow-hidden';
+            questionTextEl.className = 'text-base font-semibold text-yellow-300 text-center mb-2 h-24 overflow-hidden';
             questionTextEl.textContent = `${questionNumber + 1}. ${questionData.question}`;
             container.appendChild(questionTextEl);
 
