@@ -130,7 +130,6 @@
             <div id="fastMoneyAnswersContainer" class="grid grid-cols-5 gap-4 w-full">
             </div>
             
-
             <div class="fast-money-score-display">
                 <div class="fast-money-score-item">
                     <h2>Team A</h2>
@@ -142,14 +141,13 @@
                 </div>
             </div>
         </div>
-
+    </div>
 
     <audio id="introSound" src="intro.mp3" preload="auto"></audio>
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
     <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
     <audio id="answerSound" src="answer.mp3" preload="auto"></audio>
     <audio id="transitionSound" src="transition.mp3" preload="auto"></audio>
-
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
@@ -178,7 +176,7 @@
         const normalRoundUI = document.getElementById('normalRoundUI');
         const fastMoneyUI = document.getElementById('fastMoneyUI');
         const fastMoneyAnswersContainer = document.getElementById('fastMoneyAnswersContainer');
-        const fastMoneyTotalScoreEl = document.getElementById('fastMoneyTotalScore'); // Total FM score
+        // Removed fastMoneyTotalScoreEl as the element no longer exists
         const fastMoneyScoreAEl = document.getElementById('fastMoneyScoreA');
         const fastMoneyScoreBEl = document.getElementById('fastMoneyScoreB');
 
@@ -186,8 +184,8 @@
         const introSound = document.getElementById('introSound');
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
-        const answerSound = document.getElementById('answerSound'); 
-        const transitionSound = document.getElementById('transitionSound');         
+        const answerSound = document.getElementById('answerSound');    
+        const transitionSound = document.getElementById('transitionSound');            
 
         // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
@@ -225,7 +223,7 @@
         function playAnswerSound() {
             answerSound.currentTime = 0;
             answerSound.play().catch(e => console.warn("Answer sound play failed:", e));
-        }  
+        }    
 
         // --- Helper: Normal Round Answer Box Creation (No changes needed here) ---
         function createAnswerBox(number, answer, revealed, points) {
@@ -327,7 +325,7 @@
             const currentRoundIndex = data ? data.currentRoundIndex : null;
             // Get the current Fast Money round index for sound comparison
             const currentFastMoneyRoundIndex = data ? data.currentFastMoneyRoundIndex : null;
-        
+            
             // --- TRANSITION SOUND LOGIC ---
             // This condition prevents the sound from playing:
             // 1. On the very first load of the page (when previousRoundIndex is null).
@@ -346,12 +344,12 @@
                 }
             }
             // --- END TRANSITION SOUND LOGIC ---
-        
-        
+            
+            
             // --- UI VISIBILITY MANAGEMENT (MODIFIED) ---
             // Hide all main content areas by default for controlled display
             mainGameArea.classList.add('hidden'); // Hide the main game UI container initially
-        
+            
             if (currentRoundIndex === null || currentRoundIndex === undefined) {
                 // State: No game selected, or game was reset/not initialized
                 audioUnlockOverlay.classList.remove('hidden'); // Show the "Click to Start" overlay
@@ -363,7 +361,7 @@
                 scoreBEl.textContent = '0';
                 fastMoneyScoreAEl.textContent = '0';
                 fastMoneyScoreBEl.textContent = '0';
-                fastMoneyTotalScoreEl.textContent = '0';
+                // No longer updating fastMoneyTotalScoreEl here as it's removed from HTML
                 // Reset strikes visually
                 [1, 2, 3].forEach(n => {
                     document.getElementById(`strike${n}`).classList.remove('opacity-100');
@@ -374,7 +372,7 @@
                 normalRoundUI.classList.add('hidden');
                 fastMoneyUI.classList.remove('flex');
                 fastMoneyUI.classList.add('hidden');
-        
+            
             } else if (currentRoundIndex === "fastMoney") {
                 mainGameArea.classList.remove('hidden'); // Show the main game content
                 normalRoundUI.classList.add('hidden');
@@ -407,7 +405,7 @@
                 fastMoneyUI.classList.remove('flex');
                 displayNormalRound(data);
             }
-        
+            
             // --- UPDATE PREVIOUS STATE VARIABLES (AT THE VERY END OF THE FUNCTION) ---
             previousRoundIndex = currentRoundIndex;
             previousFastMoneyRoundIndex = currentFastMoneyRoundIndex;
@@ -417,53 +415,53 @@
         function displayNormalRound(data) {
             console.log("--- displayNormalRound called ---");
             console.log("Full data object:", data);
-        
+            
             const rounds = Array.isArray(data.rounds) ? data.rounds : [];
             const currentIndex = typeof data.currentRoundIndex === 'number' ? data.currentRoundIndex : 0;
             
             // Ensure currentRound has questionRevealed property, defaulting to false if not present
-            const currentRound = rounds[currentIndex] || { 
-                question: 'Waiting for host...', 
-                answers: [], 
-                revealed: [], 
+            const currentRound = rounds[currentIndex] || {    
+                question: 'Waiting for host...',    
+                answers: [],    
+                revealed: [],    
                 strikes: 0,
                 questionRevealed: false // Add this default
             };
-        
+            
             console.log("currentRound:", currentRound);
-        
+            
             // --- Question Display Logic ---
             if (currentRound.questionRevealed) {
                 questionEl.textContent = currentRound.question || 'Waiting for host...';
             } else {
                 questionEl.textContent = "Click 'Reveal Question' on Host Panel"; // Placeholder when hidden
                 // Alternatively, if you want it completely blank:
-                // questionEl.textContent = ""; 
+                // questionEl.textContent = "";    
             }
             // --- End Question Display Logic ---
-        
+            
             answersContainer.innerHTML = '';
-        
+            
             const maxSlots = 8;
             const col1Count = 4;
-        
+            
             const colsWrapper = document.createElement('div');
             colsWrapper.className = 'flex gap-4 max-w-5xl w-full';
-        
+            
             const col1 = document.createElement('div');
             col1.className = 'flex flex-col flex-1 gap-2';
             const col2 = document.createElement('div');
             col2.className = 'flex flex-col flex-1 gap-2';
-        
+            
             let currentRevealedState = [];
-        
+            
             for (let i = 0; i < maxSlots; i++) {
                 const answerObj = currentRound.answers[i];
                 const isRevealed = currentRound.revealed?.[i] || false;
                 const number = i + 1;
-        
+            
                 const col = i < col1Count ? col1 : col2;
-        
+            
                 if (!answerObj) {
                     const blankBox = document.createElement('div');
                     blankBox.className = 'answer-box-blank';
@@ -471,19 +469,19 @@
                     currentRevealedState.push(false);
                     continue;
                 }
-        
+            
                 const box = createAnswerBox(number, answerObj.text, isRevealed, answerObj.points);
                 col.appendChild(box);
                 currentRevealedState.push(isRevealed);
             }
-        
+            
             colsWrapper.appendChild(col1);
             colsWrapper.appendChild(col2);
             answersContainer.appendChild(colsWrapper);
-        
+            
             scoreAEl.textContent = data.scoreA || 0;
             scoreBEl.textContent = data.scoreB || 0;
-        
+            
             // Only play sound if game is active AND there's a change
             if (currentActiveGameName) {
                 // If previousRevealedState is empty (first load or new game), initialize it
@@ -501,13 +499,13 @@
                     previousRevealedState = [...currentRevealedState];
                 }
             }
-        
+            
             const currentStrikes = currentRound.strikes || 0;
             if (currentActiveGameName && currentStrikes > previousStrikes) {
                 playBuzz();
             }
             previousStrikes = currentStrikes;
-        
+            
             [1, 2, 3].forEach(n => {
                 const el = document.getElementById(`strike${n}`);
                 if (el) {
@@ -520,7 +518,7 @@
                     }
                 }
             });
-        
+            
             if (data.rounds && data.rounds.length > 0) {
                 roundNumberEl.textContent = `Round ${currentIndex + 1} / ${rounds.length}`;
             } else {
@@ -536,7 +534,7 @@
             const currentFMRound = fastMoneyRounds[currentFMRoundIndex] || { questions: [] };
 
             roundNumberEl.textContent = `Fast Money Round ${currentFMRoundIndex + 1}`;
-            fastMoneyTotalScoreEl.textContent = fastMoneyTotalPoints;
+            // Removed the line that updates fastMoneyTotalScoreEl
 
             fastMoneyScoreAEl.textContent = data.scoreA || 0;
             fastMoneyScoreBEl.textContent = data.scoreB || 0;
@@ -582,7 +580,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             startButton.addEventListener('click', () => {
                 // --- FIX IS HERE: Hide the overlay IMMEDIATELY on click ---
-                audioUnlockOverlay.style.display = 'none'; 
+                audioUnlockOverlay.style.display = 'none';    
                 console.log("User clicked to start. Attempting to play audio...");
                 
                 playIntro().then(() => {
