@@ -147,7 +147,9 @@
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
     <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
     <audio id="answerSound" src="answer.mp3" preload="auto"></audio>
+    <audio id="topAnswers" src="topAnswers.mp3" preload="auto"></audio>
     <audio id="transitionSound" src="transition.mp3" preload="auto"></audio>
+    
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
@@ -185,7 +187,8 @@
         const dingSound = document.getElementById('dingSound');
         const buzzSound = document.getElementById('buzzSound');
         const answerSound = document.getElementById('answerSound');    
-        const transitionSound = document.getElementById('transitionSound');            
+        const transitionSound = document.getElementById('transitionSound');      
+        const topAnswersSound = document.getElementById('topAnswersSound');
 
         // Audio Unlock Overlay elements
         const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
