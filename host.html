@@ -568,7 +568,10 @@
                     answer.revealedAnswer = true;
                     answer.revealedPoints = true;
                 });
-                set(gameRef, data);
+
+                data.lastTopAnswersTrigger = Date.now();
+                
+                await set(gameRef, data);
             }).catch(error => {
                 console.error("Error revealing all top Fast Money answers:", error);
             });
@@ -861,7 +864,8 @@
                 currentFastMoneyQuestionIndex: 0,
                 fastMoneyTimerRunning: false,
                 fastMoneyTimeRemaining: 30, // Example: 30 seconds for the timer
-                fastMoneyTotalPoints: 0 // To accumulate points in Fast Money
+                fastMoneyTotalPoints: 0, // To accumulate points in Fast Money
+                lastTopAnswersTrigger: 0
             })
                 .then(() => {
                     console.log(`Game "${currentGameName}" started and data sent to Firebase!`);
@@ -953,7 +957,8 @@
                 currentFastMoneyQuestionIndex: 0,
                 fastMoneyTimerRunning: false,
                 fastMoneyTimeRemaining: 30,
-                fastMoneyTotalPoints: 0
+                fastMoneyTotalPoints: 0,
+                lastTopAnswersTrigger: 0
             };
 
             const gameRef = ref(db, `games/${name}`);
