@@ -623,6 +623,14 @@
                     onValue(activeGameRef, (gameSnapshot) => {
                         const data = gameSnapshot.val();
                         if (data) {
+                            
+                            if (lastBuzzTriggerTimestamp === 0 && data.lastBuzzTrigger) {
+                                lastBuzzTriggerTimestamp = data.lastBuzzTrigger;
+                            }
+                            if (lastTopAnswersTriggerTimestamp === 0 && data.lastTopAnswersTrigger) {
+                                lastTopAnswersTriggerTimestamp = data.lastTopAnswersTrigger;
+                            }
+                            
                             updateDisplay(data);
 
                             const newBuzzTriggerTimestamp = data.lastBuzzTrigger || 0;
