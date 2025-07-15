@@ -571,7 +571,7 @@
 
                 data.lastTopAnswersTrigger = Date.now();
                 
-                await set(gameRef, data);
+                set(gameRef, data);
             }).catch(error => {
                 console.error("Error revealing all top Fast Money answers:", error);
             });
