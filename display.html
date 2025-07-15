@@ -195,6 +195,7 @@
         let previousRevealedState = [];
         let previousStrikes = 0;
         let currentActiveGameName = null;
+        let lastBuzzTriggerTimestamp = 0;
 
         // --- NEW: To track previous state for Fast Money reveals ---
         // We'll store a deep copy of the fastMoneyRounds questions
@@ -615,6 +616,12 @@
                         const data = gameSnapshot.val();
                         if (data) {
                             updateDisplay(data);
+
+                            const newBuzzTriggerTimestamp = data.lastBuzzTrigger || 0;
+                            if (newBuzzTriggerTimestamp > lastBuzzTriggerTimestamp) {
+                                playBuzz();
+                                lastBuzzTriggerTimestamp = newBuzzTriggerTimestamp; // Update timestamp
+                            }
                         } else {
                             console.warn(`Game data for ${activeGameName} not found.`);
                             updateDisplay(null);
