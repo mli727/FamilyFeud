@@ -147,7 +147,7 @@
     <audio id="dingSound" src="ding.mp3" preload="auto"></audio>
     <audio id="buzzSound" src="buzz.mp3" preload="auto"></audio>
     <audio id="answerSound" src="answer.mp3" preload="auto"></audio>
-    <audio id="topAnswers" src="topAnswers.mp3" preload="auto"></audio>
+    <audio id="topAnswersSound" src="topAnswers.mp3" preload="auto"></audio>
     <audio id="transitionSound" src="transition.mp3" preload="auto"></audio>
     
 
@@ -199,6 +199,7 @@
         let previousStrikes = 0;
         let currentActiveGameName = null;
         let lastBuzzTriggerTimestamp = 0;
+        let lastTopAnswersTriggerTimestamp = 0;
 
         // --- NEW: To track previous state for Fast Money reveals ---
         // We'll store a deep copy of the fastMoneyRounds questions
@@ -229,6 +230,10 @@
             answerSound.play().catch(e => console.warn("Answer sound play failed:", e));
         }    
 
+        function playTopAnswersSound() {
+            topAnswersSound.currentTime = 0;
+            topAnswersSound.play().catch(e => console.warn("Top Answers sound play failed:", e));
+        }
         // --- Helper: Normal Round Answer Box Creation (No changes needed here) ---
         function createAnswerBox(number, answer, revealed, points) {
             const container = document.createElement('div');
@@ -625,6 +630,14 @@
                                 playBuzz();
                                 lastBuzzTriggerTimestamp = newBuzzTriggerTimestamp; // Update timestamp
                             }
+
+                            // Inside the onValue(activeGameRef, ...) listener:
+                            const newTopAnswersTriggerTimestamp = data.lastTopAnswersTrigger || 0;
+                            if (newTopAnswersTriggerTimestamp > lastTopAnswersTriggerTimestamp) {
+                                playTopAnswersSound();
+                                lastTopAnswersTriggerTimestamp = newTopAnswersTriggerTimestamp; // Update timestamp
+                            }
+                            
                         } else {
                             console.warn(`Game data for ${activeGameName} not found.`);
                             updateDisplay(null);
