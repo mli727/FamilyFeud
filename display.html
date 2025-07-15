@@ -200,6 +200,7 @@
         let currentActiveGameName = null;
         let lastBuzzTriggerTimestamp = 0;
         let lastTopAnswersTriggerTimestamp = 0;
+        let lastContestantPointsTriggerTimestamp = 0;
 
         // --- NEW: To track previous state for Fast Money reveals ---
         // We'll store a deep copy of the fastMoneyRounds questions
@@ -616,6 +617,7 @@
                     currentActiveGameName = activeGameName;
                     previousRoundIndex = null;
                     previousFastMoneyRoundIndex = null;
+                    lastContestantPointsTriggerTimestamp = 0;
                 }
 
                 if (activeGameName) {
@@ -627,8 +629,13 @@
                             if (lastBuzzTriggerTimestamp === 0 && data.lastBuzzTrigger) {
                                 lastBuzzTriggerTimestamp = data.lastBuzzTrigger;
                             }
+                            
                             if (lastTopAnswersTriggerTimestamp === 0 && data.lastTopAnswersTrigger) {
                                 lastTopAnswersTriggerTimestamp = data.lastTopAnswersTrigger;
+                            }
+                            
+                            if (lastContestantPointsTriggerTimestamp === 0 && data.lastContestantPointsTrigger) {
+                            lastContestantPointsTriggerTimestamp = data.lastContestantPointsTrigger;
                             }
                             
                             updateDisplay(data);
