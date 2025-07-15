@@ -86,6 +86,9 @@
                     <button onclick="addStrike()" class="bg-red-600 text-white px-6 py-3 rounded-full text-xl shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
                         ❌ Add Strike
                     </button>
+                    <button onclick="playBuzzSoundOnDisplay()" class="bg-red-300 text-white px-6 py-3 rounded-full text-xl shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75">
+                        🔈 Buzz Sound
+                    </button>
         </div>
     
     <script type="module">
@@ -570,8 +573,7 @@
                 console.error("Error revealing all top Fast Money answers:", error);
             });
         }
-
-
+        
         // --- Add strike ---
         window.addStrike = function () {
             if (!currentGameName) {
@@ -600,6 +602,22 @@
             }).catch(error => {
                 console.error("Error fetching game data for addStrike:", error);
             });
+        };
+
+        // --- NEW: Function to play buzz sound on display.html ---
+        window.playBuzzSoundOnDisplay = async function() {
+            if (!currentGameName) {
+                alert("Please load or name a game version before playing sounds on the display.");
+                return;
+            }
+            try {
+                // Update a timestamp in Firebase. display.html will listen for this change.
+                await set(ref(db, `games/${currentGameName}/lastBuzzTrigger`), Date.now());
+                console.log("Buzz sound trigger sent to display.");
+            } catch (error) {
+                console.error("Error sending buzz trigger:", error);
+                alert("Failed to send buzz sound trigger. Ensure a game is active and you have network access.");
+            }
         };
 
         // --- Reset strikes ---
