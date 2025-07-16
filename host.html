@@ -1003,7 +1003,7 @@
                 await set(ref(db, 'activeGame'), gameName); // Set this as the active game
                 currentGameName = gameName; // Update local state
                 alert(`Game "${gameName}" saved and set as active!`);
-                populateGameSelector(games); // Refresh the selector
+                populateGameSelector(); // Refresh the selector
                 gameSelector.value = gameName; // Select the newly saved game
             } catch (error) {
                 console.error("Error saving game version:", error);
