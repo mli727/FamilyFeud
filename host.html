@@ -921,84 +921,94 @@
         }
 
         // Saves the current host panel data as a new game version
-        window.saveGameVersion = function () {
-            const name = gameNameInput.value.trim();
-            if (!name) {
-                alert("Please enter a name for your game version!");
+        window.saveGameVersion = async function () {
+            const gameName = gameNameInput.value.trim();
+            if (!gameName) {
+                alert("Please enter a name for your game version.");
                 return;
             }
 
-            // Collect all data just like in startGame
-            const rounds = [];
-            document.querySelectorAll("#roundsContainer > div").forEach((div) => {
-                const question = div.querySelector(".questionInput").value;
-                const answerEls = div.querySelectorAll(".answerText");
-                const pointEls = div.querySelectorAll(".answerPoints");
+            // 1. Fetch the current live game state from Firebase
+            let currentLiveGameData = {};
+            if (currentGameName) { // Only fetch if a game is currently active
+                const liveGameRef = ref(db, `games/${currentGameName}`);
+                const liveSnapshot = await get(liveGameRef);
+                currentLiveGameData = liveSnapshot.val() || {};
+            }
+
+            // Collect current UI state for rounds (questions, answers, points)
+            const roundsData = [];
+            document.querySelectorAll("#roundsContainer > div").forEach(roundDiv => {
+                const question = roundDiv.querySelector(".questionInput").value;
                 const answers = [];
-                answerEls.forEach((input, i) => {
-                    const text = input.value.trim();
-                    const points = parseInt(pointEls[i].value, 10);
-                    if (text && !isNaN(points)) answers.push({ text, points });
+                roundDiv.querySelectorAll(".answersContainer > div").forEach(answerDiv => {
+                    const text = answerDiv.querySelector(".answerText").value;
+                    const points = parseInt(answerDiv.querySelector(".answerPoints").value, 10) || 0;
+                    answers.push({ text, points });
                 });
-                rounds.push({ question, answers, revealed: Array(answers.length).fill(false), strikes: 0 });
+                // For saved versions, reset revealed/strikes/questionRevealed to initial state
+                roundsData.push({ question, answers, revealed: [], strikes: 0, questionRevealed: false });
             });
 
-            const fastMoneyRounds = [];
-            document.querySelectorAll("#fastMoneyContainer > div").forEach(div => {
-                const questionRows = div.querySelectorAll(".fast-money-question-row");
+            const fastMoneyRoundsData = [];
+            document.querySelectorAll("#fastMoneyContainer > .fast-money-round").forEach(fmRoundDiv => {
                 const questions = [];
-                questionRows.forEach(row => {
-                    const question = row.querySelector("input[placeholder^='Question']")?.value || "";
-                    const contestantAnswer1 = row.querySelector(".contestant-answer-1")?.value || "";
-                    const contestantPoints1 = parseInt(row.querySelector(".contestant-points-1")?.value || "0", 10);
-                    const contestantAnswer2 = row.querySelector(".contestant-answer-2")?.value || "";
-                    const contestantPoints2 = parseInt(row.querySelector(".contestant-points-2")?.value || "0", 10);
-                    const topAnswers = Array.from(row.querySelectorAll(".top-answer-input")).map((input, idx) => {
-                        const pointsInput = row.querySelectorAll(".top-answer-points")[idx];
-                        return {
-                            text: input.value,
-                            points: parseInt(pointsInput?.value || "0", 10),
-                            revealedAnswer: false, revealedPoints: false
-                        };
+                fmRoundDiv.querySelectorAll(".fast-money-question-row").forEach(qRow => {
+                    const questionText = qRow.querySelector("input[placeholder^='Question']").value;
+                    const contestantAnswer1 = qRow.querySelector(".contestant-answer-1").value;
+                    const contestantPoints1 = parseInt(qRow.querySelector(".contestant-points-1").value, 10) || 0;
+                    const contestantAnswer2 = qRow.querySelector(".contestant-answer-2").value;
+                    const contestantPoints2 = parseInt(qRow.querySelector(".contestant-points-2").value, 10) || 0;
+                    
+                    const topAnswers = Array.from(qRow.querySelectorAll(".top-answer-input")).map((input, idx) => {
+                        const pointsInput = qRow.querySelectorAll(".top-answer-points")[idx];
+                        // For saved versions, reset revealed answers/points to initial state
+                        return { text: input.value, points: parseInt(pointsInput?.value || "0", 10), revealedAnswer: false, revealedPoints: false };
                     });
+
                     questions.push({
-                        question, contestantAnswer1, contestantPoints1, revealedContestantAnswer1: false, revealedContestantPoints1: false,
-                        contestantAnswer2, contestantPoints2, revealedContestantAnswer2: false, revealedContestantPoints2: false,
+                        question: questionText,
+                        contestantAnswer1,
+                        contestantPoints1,
+                        contestantAnswer2,
+                        contestantPoints2,
+                        revealedContestantAnswer1: false, // Reset reveals for saved version
+                        revealedContestantAnswer2: false, // Reset reveals for saved version
+                        revealedContestantPoints1: false, // Reset reveals for saved version
+                        revealedContestantPoints2: false, // Reset reveals for saved version
                         topAnswers
                     });
                 });
-                fastMoneyRounds.push({ questions });
+                fastMoneyRoundsData.push({ questions });
             });
 
-            const gameData = {
-                rounds,
-                fastMoneyRounds,
-                currentRoundIndex: 0, // Reset state for saved version
-                scoreA: 0,
-                scoreB: 0,
-                currentFastMoneyRoundIndex: 0,
-                currentFastMoneyQuestionIndex: 0,
-                fastMoneyTimerRunning: false,
-                fastMoneyTimeRemaining: 30,
-                fastMoneyTotalPoints: 0,
-                lastTopAnswersTrigger: 0,
-                lastContestantPointsTrigger: 0
+            // 2. Construct the gameData object for saving, using live state for current progress
+            const gameDataToSave = {
+                rounds: roundsData, // These are the structure/content of the rounds
+                fastMoneyRounds: fastMoneyRoundsData, // These are the structure/content of FM rounds
+                
+                // Preserve the current live state for these properties:
+                scoreA: currentLiveGameData.scoreA || 0,
+                scoreB: currentLiveGameData.scoreB || 0,
+                currentRoundIndex: currentLiveGameData.currentRoundIndex || 0,
+                currentFastMoneyRoundIndex: currentLiveGameData.currentFastMoneyRoundIndex || 0,
+                fastMoneyTotalPoints: currentLiveGameData.fastMoneyTotalPoints || 0,
+                lastBuzzTrigger: currentLiveGameData.lastBuzzTrigger || 0,
+                lastTopAnswersTrigger: currentLiveGameData.lastTopAnswersTrigger || 0,
+                lastContestantPointsTrigger: currentLiveGameData.lastContestantPointsTrigger || 0
             };
 
-            const gameRef = ref(db, `games/${name}`);
-            set(gameRef, gameData)
-                .then(() => {
-                    alert(`✅ Game version "${name}" saved successfully!`);
-                    console.log(`Game version "${name}" saved.`);
-                    currentGameName = name; // Set this as the currently active game
-                    gameNameInput.value = name; // Update input field
-                    gameSelector.value = name; // Update selector
-                    // No need to call populateGameSelector here, onValue listener will handle it
-                })
-                .catch(error => {
-                    console.error("Error saving game version:", error);
-                    alert("❌ Failed to save game version.");
-                });
+            try {
+                await set(ref(db, `games/${gameName}`), gameDataToSave); // Save the game with preserved state
+                await set(ref(db, 'activeGame'), gameName); // Set this as the active game
+                currentGameName = gameName; // Update local state
+                alert(`Game "${gameName}" saved and set as active!`);
+                loadGameVersions(); // Refresh the selector
+                gameSelector.value = gameName; // Select the newly saved game
+            } catch (error) {
+                console.error("Error saving game version:", error);
+                alert("Failed to save game version. See console for details.");
+            }
         };
 
         // Loads a selected game version into the host panel
