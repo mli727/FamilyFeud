@@ -652,6 +652,13 @@
                                 playTopAnswersSound();
                                 lastTopAnswersTriggerTimestamp = newTopAnswersTriggerTimestamp; // Update timestamp
                             }
+
+                            // Listen for contestant points trigger
+                            const newContestantPointsTriggerTimestamp = data.lastContestantPointsTrigger || 0;
+                            if (newContestantPointsTriggerTimestamp > lastContestantPointsTriggerTimestamp) {
+                                playDing(); // Play ding sound for contestant points reveal
+                                lastContestantPointsTriggerTimestamp = newContestantPointsTriggerTimestamp; // Update timestamp
+                            }
                             
                         } else {
                             console.warn(`Game data for ${activeGameName} not found.`);
