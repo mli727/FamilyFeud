@@ -273,10 +273,13 @@
             const div = document.createElement("div");
             div.className = "mb-10 p-4 border rounded bg-white fast-money-round";
             const currentFastMoneyRoundIndex = fastMoneyCount; // Capture index for closures
-
+            
             div.innerHTML = `
                 <h3 class="text-lg font-bold mb-4">Fast Money Round ${currentFastMoneyRoundIndex + 1}</h3>
                 <div class="flex flex-col gap-6"></div>
+                <div class="mt-6 p-3 bg-yellow-200 rounded-md text-center">
+                    <h4 class="text-xl font-bold text-yellow-900">Round Total: <span class="fastMoneyRoundTotal text-3xl">0</span></h4>
+                </div>
             `;
 
             const content = div.querySelector(".flex.flex-col.gap-6");
@@ -310,6 +313,7 @@
                 ptsInput1.placeholder = "Pts 1";
                 ptsInput1.className = "p-1 border rounded w-1/5 text-sm contestant-points-1";
                 ptsInput1.value = currentQuestion.contestantPoints1 || "";
+                ptsInput1.oninput = () => updateFastMoneyRoundTotal(div);
 
                 answerRow1.appendChild(aInput1);
                 answerRow1.appendChild(ptsInput1);
@@ -328,6 +332,7 @@
                 ptsInput2.placeholder = "Pts 2";
                 ptsInput2.className = "p-1 border rounded w-1/5 text-sm contestant-points-2";
                 ptsInput2.value = currentQuestion.contestantPoints2 || "";
+                ptsInput2.oninput = () => updateFastMoneyRoundTotal(div);
 
                 answerRow2.appendChild(aInput2);
                 answerRow2.appendChild(ptsInput2);
@@ -395,11 +400,20 @@
             fastMoneyCount++;
             updateFastMoneyLabels();
 
-            <div class="mt-6 p-3 bg-yellow-200 rounded-md text-center">
-                <h4 class="text-xl font-bold text-yellow-900">Round Total: <span class="fastMoneyRoundTotal text-3xl">0</span></h4>
-            </div>
-
         };
+
+        function updateFastMoneyRoundTotal(roundDiv) {
+            let total = 0;
+            // Select all contestant points inputs within the *given* roundDiv
+            roundDiv.querySelectorAll(".contestant-points-1").forEach(input => {
+                total += parseInt(input.value, 10) || 0;
+            });
+            roundDiv.querySelectorAll(".contestant-points-2").forEach(input => {
+                total += parseInt(input.value, 10) || 0;
+            });
+            // Update the total display for this specific round
+            roundDiv.querySelector(".fastMoneyRoundTotal").textContent = total;
+        }
 
 
         // Update round labels after adding/removing rounds
